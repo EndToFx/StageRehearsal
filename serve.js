@@ -1,4 +1,4 @@
-// 极简静态文件服务器 - 用于本地预览 demo
+// Minimal static file server for local demo preview.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -15,6 +15,8 @@ const MIME = {
   '.jpg': 'image/jpeg',
   '.ttf': 'font/ttf',
   '.svg': 'image/svg+xml',
+  '.glb': 'model/gltf-binary',
+  '.usdz': 'model/vnd.usdz+zip',
 };
 
 const server = http.createServer((req, res) => {

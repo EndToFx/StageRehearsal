@@ -10,6 +10,9 @@ This repository is prepared as a static GitHub Pages demo.
 - `docs/*.md`
 - `_shared/fonts/*.ttf`
 - `assets/models/RobotExpressive.glb`
+- `assets/models/debug_native_glb.glb`
+- `assets/models/IozsL7ZmHiVHopD-D3_ay.usdz`
+- `assets/refs/REPO.png`
 - `.nojekyll`
 - `.gitignore`
 
@@ -23,7 +26,7 @@ This repository is prepared as a static GitHub Pages demo.
 
 ## Asset note
 
-`assets/models/RobotExpressive.glb` is used only as a public demo test model. Do not add commercial game assets unless their license clearly allows redistribution in a public GitHub repository.
+`assets/models/debug_native_glb.glb` is the default Kimodo-compatible rig preview. `assets/models/IozsL7ZmHiVHopD-D3_ay.usdz` is the Hunyuan-compatible prototype asset. `assets/refs/REPO.png` is the visual reference. Do not add commercial game assets unless their license clearly allows redistribution in a public GitHub repository.
 
 ## GitHub Pages target
 

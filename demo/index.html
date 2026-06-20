@@ -183,14 +183,14 @@
       </section>
 
       <section class="section">
-        <div class="section-head"><div class="section-title" data-i18n="prototype">Prototype Character</div><span class="pill">HUNYUAN 3D</span></div>
+        <div class="section-head"><div class="section-title" data-i18n="prototype">Prototype Character</div><span class="pill">RIG READY</span></div>
         <div class="reference-card">
           <img src="../assets/refs/REPO.png" alt="Robot reference generated with Hunyuan 3D 3.1">
-          <div class="reference-meta" data-i18n="prototypeHint">Reference style: round robot, large eyes, short limbs. The page uses a visible procedural robot and keeps the Hunyuan FBX as a downloadable prototype asset.</div>
+          <div class="reference-meta" data-i18n="prototypeHint">Default preview loads debug_native_glb.glb for the Kimodo-compatible skeleton. Hunyuan USDZ is provided as the Tencent Hunyuan AI prototype asset.</div>
         </div>
         <div class="model-actions">
-          <a class="btn" href="../assets/models/hunyuan-prototype.fbx" download data-i18n="downloadFbx">Download FBX</a>
-          <button class="btn" id="btn-use-prototype" data-i18n="usePrototype">Use Prototype Look</button>
+          <a class="btn" href="../assets/models/debug_native_glb.glb" download data-i18n="downloadGlb">Download GLB</a>
+          <a class="btn" href="../assets/models/IozsL7ZmHiVHopD-D3_ay.usdz" download data-i18n="downloadUsdz">Download USDZ</a>
         </div>
       </section>
 
@@ -266,6 +266,7 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -293,9 +294,9 @@ const copy = {
     energy:'Energy',
     camera:'Camera',
     prototype:'Prototype Character',
-    prototypeHint:'Reference style: round robot, large eyes, short limbs. The page uses a visible procedural robot and keeps the Hunyuan FBX as a downloadable prototype asset.',
-    downloadFbx:'Download FBX',
-    usePrototype:'Use Prototype Look',
+    prototypeHint:'Default preview loads debug_native_glb.glb for the Kimodo-compatible skeleton. Hunyuan USDZ is provided as the Tencent Hunyuan AI prototype asset.',
+    downloadGlb:'Download GLB',
+    downloadUsdz:'Download USDZ',
     ueBridge:'Unreal Bridge',
     disconnected:'Disconnected',
     connected:'Connected',
@@ -336,9 +337,9 @@ const copy = {
     energy:'\u80fd\u91cf',
     camera:'\u955c\u5934',
     prototype:'\u539f\u578b\u89d2\u8272',
-    prototypeHint:'\u53c2\u8003\u98ce\u683c\uff1a\u5706\u7b52\u673a\u5668\u4eba\u3001\u5927\u773c\u775b\u3001\u77ed\u624b\u77ed\u817f\u3002\u9875\u9762\u4f7f\u7528\u53ef\u89c1\u7684\u7a0b\u5e8f\u5316\u673a\u5668\u4eba\uff0c\u540c\u65f6\u4fdd\u7559\u6df7\u5143 FBX \u4f5c\u4e3a\u53ef\u4e0b\u8f7d\u539f\u578b\u8d44\u4ea7\u3002',
-    downloadFbx:'\u4e0b\u8f7d FBX',
-    usePrototype:'\u4f7f\u7528\u539f\u578b\u5916\u89c2',
+    prototypeHint:'\u9ed8\u8ba4\u9884\u89c8\u52a0\u8f7d debug_native_glb.glb\uff0c\u7528\u4e8e Kimodo \u517c\u5bb9\u9aa8\u9abc\u9a8c\u8bc1\u3002\u540c\u65f6\u63d0\u4f9b\u6df7\u5143 USDZ\uff0c\u4f5c\u4e3a\u817e\u8baf\u6df7\u5143 AI \u539f\u578b\u8d44\u4ea7\u3002',
+    downloadGlb:'\u4e0b\u8f7d GLB',
+    downloadUsdz:'\u4e0b\u8f7d USDZ',
     ueBridge:'Unreal \u8054\u52a8',
     disconnected:'\u672a\u8fde\u63a5',
     connected:'\u5df2\u8fde\u63a5',
@@ -447,6 +448,34 @@ const legR = part(new THREE.Mesh(new THREE.CapsuleGeometry(.11, .8, 8, 12), mats
 
 const fallbackRig = { body, head, eyeL, eyeR, armL, armR, legL, legR };
 let loadedRobot = null;
+window.stageRehearsalAssets = { rigModel: 'loading', rigSkeleton: 'kimodo-compatible', hunyuanUsdz: 'available' };
+const loader = new GLTFLoader();
+loader.load('../assets/models/debug_native_glb.glb', (gltf) => {
+  loadedRobot = gltf.scene;
+  loadedRobot.name = 'KimodoCompatiblePrototype';
+  loadedRobot.rotation.y = Math.PI;
+  const box = new THREE.Box3().setFromObject(loadedRobot);
+  const size = box.getSize(new THREE.Vector3());
+  const targetHeight = 2.15;
+  loadedRobot.scale.setScalar(size.y > 0 ? targetHeight / size.y : 1);
+  const scaledBox = new THREE.Box3().setFromObject(loadedRobot);
+  const center = scaledBox.getCenter(new THREE.Vector3());
+  loadedRobot.position.set(-center.x, -scaledBox.min.y, -center.z);
+  loadedRobot.traverse((node) => {
+    if (node.isMesh) {
+      node.castShadow = true;
+      node.frustumCulled = false;
+    }
+  });
+  character.add(loadedRobot);
+  Object.values(fallbackRig).forEach(mesh => mesh.visible = false);
+  window.stageRehearsalAssets.rigModel = 'loaded';
+  toast(state.lang === 'zh' ? '\u5df2\u52a0\u8f7d Kimodo \u9aa8\u9abc GLB \u539f\u578b' : 'Kimodo skeleton GLB loaded', 'success');
+}, undefined, () => {
+  Object.values(fallbackRig).forEach(mesh => mesh.visible = true);
+  window.stageRehearsalAssets.rigModel = 'fallback';
+  toast(state.lang === 'zh' ? '\u9aa8\u9abc GLB \u52a0\u8f7d\u5931\u8d25\uff0c\u5df2\u4f7f\u7528\u53ef\u89c1\u515c\u5e95\u89d2\u8272' : 'Rigged GLB failed to load; fallback character is visible', 'error');
+});
 
 function generateAnim() {
   const keys = [];
@@ -624,7 +653,6 @@ $('btn-gen-cam').addEventListener('click', generateCam);
 $('btn-gen-light').addEventListener('click', generateLight);
 $('btn-generate-all').addEventListener('click', generateAll);
 $('btn-brief-generate').addEventListener('click', generateAll);
-$('btn-use-prototype').addEventListener('click', () => { Object.values(fallbackRig).forEach(mesh => mesh.visible = true); if (loadedRobot) loadedRobot.visible = false; toast(state.lang === 'zh' ? '\u5df2\u5207\u6362\u4e3a\u539f\u578b\u673a\u5668\u4eba\u5916\u89c2' : 'Prototype robot look enabled', 'success'); });
 $('btn-play').addEventListener('click', () => { state.playing = !state.playing; $('btn-play').textContent = state.playing ? 'Pause' : 'Play'; });
 $('btn-reset').addEventListener('click', () => { state.time = 0; state.playing = false; state.animKeys = []; state.camKeys = []; state.lightKeys = []; $('btn-play').textContent = 'Play'; renderCards(); updateFills(); updateTimeline(); });
 $('btn-export').addEventListener('click', () => {

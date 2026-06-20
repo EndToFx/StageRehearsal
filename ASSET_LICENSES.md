@@ -11,9 +11,9 @@
 
 This model is included as a public demo test asset. Do not add commercial game assets to this repository unless their redistribution license is explicit.
 
-## Hunyuan prototype reference
+## Rigged prototype references
 
-- Files: `assets/refs/REPO.png`, `assets/models/hunyuan-prototype.fbx`
-- Source: User-provided prototype generated with Hunyuan 3D 3.1.
-- Usage: Public demo reference and downloadable prototype asset.
-- Notes: Large USDZ variants from the same reference folder are intentionally excluded from the public repository.
+- Files: `assets/refs/REPO.png`, `assets/models/debug_native_glb.glb`, `assets/models/IozsL7ZmHiVHopD-D3_ay.usdz`
+- Source: User-provided reference assets from `E:\Ugit\ai-digital-rehearsal\Ref`.
+- Usage: Public demo reference, Kimodo-compatible skeleton preview, and Tencent Hunyuan AI prototype download.
+- Notes: `debug_native_glb.glb` is the default browser preview model because its skeleton matches the intended drive test. `IozsL7ZmHiVHopD-D3_ay.usdz` is included as the Hunyuan-compatible prototype asset.
