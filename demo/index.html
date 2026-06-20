@@ -111,6 +111,15 @@
   .reference-card img { display: block; width: 100%; max-height: 190px; object-fit: contain; background: #07080c; }
   .reference-meta { padding: 9px; color: var(--muted); line-height: 1.45; }
   .model-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .preset-grid { display: grid; grid-template-columns: 1fr; gap: 7px; margin: 9px 0; }
+  .preset {
+    display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+    width: 100%; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+    border-radius: 6px; padding: 8px; text-align: left; cursor: pointer;
+  }
+  .preset.active { color: white; border-color: var(--cyan); background: rgba(86,215,200,.12); }
+  .preset small { color: var(--dim); font-family: GeistMono, monospace; }
+  .status-line { color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 7px; }
   .tl-top { display: flex; align-items: center; justify-content: space-between; }
   .tl-left, .tl-right { display: flex; align-items: center; gap: 8px; }
   .tracks { display: grid; gap: 6px; }
@@ -177,6 +186,7 @@
           <button class="btn grow" id="btn-gen-cam" data-i18n="genCam">Camera</button>
           <button class="btn grow" id="btn-gen-light" data-i18n="genLight">Lighting</button>
         </div>
+        <button class="btn" id="btn-fallback-motion" data-i18n="fallbackMotion" style="width:100%;margin-top:8px;">Fallback Motion Preview</button>
         <div class="slider-row"><span data-i18n="duration">Duration</span><input id="duration" type="range" min="5" max="24" step="1" value="12"><span id="duration-val" class="mono">12s</span></div>
         <div class="slider-row"><span data-i18n="energy">Energy</span><input id="energy" type="range" min="0.2" max="2" step="0.1" value="1"><span id="energy-val" class="mono">1.0</span></div>
         <div class="slider-row"><span data-i18n="camera">Camera</span><input id="camera-intensity" type="range" min="0.2" max="2" step="0.1" value="1"><span id="camera-val" class="mono">1.0</span></div>
@@ -186,12 +196,33 @@
         <div class="section-head"><div class="section-title" data-i18n="prototype">Prototype Character</div><span class="pill">RIG READY</span></div>
         <div class="reference-card">
           <img src="../assets/refs/REPO.png" alt="Robot reference generated with Hunyuan 3D 3.1">
-          <div class="reference-meta" data-i18n="prototypeHint">Default preview loads debug_native_glb.glb for the Kimodo-compatible skeleton. Hunyuan USDZ is provided as the Tencent Hunyuan AI prototype asset.</div>
+          <div class="reference-meta" data-i18n="prototypeHint">Default preset uses the Hunyuan USDZ prototype. Kimodo GLB is kept as the rig-compatible browser preview and animation target.</div>
+        </div>
+        <div class="preset-grid" id="character-presets">
+          <button class="preset active" data-character="hunyuan"><span data-i18n="presetHunyuan">Hunyuan USDZ Prototype</span><small>USDZ</small></button>
+          <button class="preset" data-character="kimodo"><span data-i18n="presetKimodo">Kimodo GLB Rig</span><small>GLB</small></button>
+          <button class="preset" data-character="fallback"><span data-i18n="presetFallback">Procedural Fallback</span><small>LOCAL</small></button>
         </div>
         <div class="model-actions">
           <a class="btn" href="../assets/models/debug_native_glb.glb" download data-i18n="downloadGlb">Download GLB</a>
           <a class="btn" href="../assets/models/IozsL7ZmHiVHopD-D3_ay.usdz" download data-i18n="downloadUsdz">Download USDZ</a>
         </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><div class="section-title" data-i18n="kimodoAi">Kimodo AI Motion</div><span class="pill">LOCAL AI</span></div>
+        <label data-i18n="kimodoUrl">Kimodo Bridge URL</label>
+        <input id="kimodo-url" value="http://127.0.0.1:8765">
+        <label data-i18n="kimodoModel">Kimodo model</label>
+        <select id="kimodo-model">
+          <option value="Kimodo-SOMA-RP-v1">Kimodo SOMA RigPlay</option>
+          <option value="Kimodo-G1-RP-v1">Kimodo G1 RigPlay</option>
+          <option value="Kimodo-SOMA-SEED-v1">Kimodo SOMA SEED</option>
+          <option value="Kimodo-G1-SEED-v1">Kimodo G1 SEED</option>
+          <option value="Kimodo-SMPLX-RP-v1">Kimodo SMPL-X RigPlay</option>
+        </select>
+        <button class="btn primary" id="btn-kimodo-generate" data-i18n="kimodoGenerate" style="width:100%;margin-top:8px;">Generate Kimodo Motion</button>
+        <div class="status-line" id="kimodo-status" data-i18n="kimodoIdle">Kimodo bridge is idle.</div>
       </section>
 
       <section class="section">
@@ -267,6 +298,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { USDZLoader } from 'three/addons/loaders/USDZLoader.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -290,13 +322,22 @@ const copy = {
     genAnim:'Motion',
     genCam:'Camera',
     genLight:'Lighting',
+    fallbackMotion:'Fallback Motion Preview',
     duration:'Duration',
     energy:'Energy',
     camera:'Camera',
     prototype:'Prototype Character',
-    prototypeHint:'Default preview loads debug_native_glb.glb for the Kimodo-compatible skeleton. Hunyuan USDZ is provided as the Tencent Hunyuan AI prototype asset.',
+    prototypeHint:'Default preset uses the Hunyuan USDZ prototype. Kimodo GLB is kept as the rig-compatible browser preview and animation target.',
+    presetHunyuan:'Hunyuan USDZ Prototype',
+    presetKimodo:'Kimodo GLB Rig',
+    presetFallback:'Procedural Fallback',
     downloadGlb:'Download GLB',
     downloadUsdz:'Download USDZ',
+    kimodoAi:'Kimodo AI Motion',
+    kimodoUrl:'Kimodo Bridge URL',
+    kimodoModel:'Kimodo model',
+    kimodoGenerate:'Generate Kimodo Motion',
+    kimodoIdle:'Kimodo bridge is idle.',
     ueBridge:'Unreal Bridge',
     disconnected:'Disconnected',
     connected:'Connected',
@@ -333,13 +374,22 @@ const copy = {
     genAnim:'\u52a8\u4f5c',
     genCam:'\u8fd0\u955c',
     genLight:'\u706f\u5149',
+    fallbackMotion:'\u672c\u5730\u515c\u5e95\u52a8\u4f5c\u9884\u89c8',
     duration:'\u65f6\u957f',
     energy:'\u80fd\u91cf',
     camera:'\u955c\u5934',
     prototype:'\u539f\u578b\u89d2\u8272',
-    prototypeHint:'\u9ed8\u8ba4\u9884\u89c8\u52a0\u8f7d debug_native_glb.glb\uff0c\u7528\u4e8e Kimodo \u517c\u5bb9\u9aa8\u9abc\u9a8c\u8bc1\u3002\u540c\u65f6\u63d0\u4f9b\u6df7\u5143 USDZ\uff0c\u4f5c\u4e3a\u817e\u8baf\u6df7\u5143 AI \u539f\u578b\u8d44\u4ea7\u3002',
+    prototypeHint:'\u9ed8\u8ba4\u9884\u8bbe\u4f7f\u7528\u6df7\u5143 USDZ \u539f\u578b\u8d44\u4ea7\u3002Kimodo GLB \u4fdd\u7559\u4e3a\u6d4f\u89c8\u5668\u9aa8\u9abc\u9884\u89c8\u548c\u52a8\u753b\u76ee\u6807\u3002',
+    presetHunyuan:'\u6df7\u5143 USDZ \u539f\u578b',
+    presetKimodo:'Kimodo GLB \u9aa8\u9abc',
+    presetFallback:'\u7a0b\u5e8f\u5316\u515c\u5e95\u89d2\u8272',
     downloadGlb:'\u4e0b\u8f7d GLB',
     downloadUsdz:'\u4e0b\u8f7d USDZ',
+    kimodoAi:'Kimodo AI \u52a8\u4f5c',
+    kimodoUrl:'Kimodo \u6865\u63a5\u5730\u5740',
+    kimodoModel:'Kimodo \u6a21\u578b',
+    kimodoGenerate:'\u751f\u6210 Kimodo \u52a8\u4f5c',
+    kimodoIdle:'Kimodo \u6865\u63a5\u7a7a\u95f2\u4e2d\u3002',
     ueBridge:'Unreal \u8054\u52a8',
     disconnected:'\u672a\u8fde\u63a5',
     connected:'\u5df2\u8fde\u63a5',
@@ -371,7 +421,7 @@ const styles = {
 
 const state = {
   lang:'zh', style:'studio', duration:12, time:0, playing:false, speed:1, energy:1, camIntensity:1,
-  camView:false, animKeys:[], camKeys:[], lightKeys:[], sent:0
+  camView:false, animKeys:[], camKeys:[], lightKeys:[], sent:0, characterPreset:'hunyuan', kimodoMotion:null
 };
 
 function t(key) { return copy[state.lang][key] || copy.en[key] || key; }
@@ -448,34 +498,192 @@ const legR = part(new THREE.Mesh(new THREE.CapsuleGeometry(.11, .8, 8, 12), mats
 
 const fallbackRig = { body, head, eyeL, eyeR, armL, armR, legL, legR };
 let loadedRobot = null;
-window.stageRehearsalAssets = { rigModel: 'loading', rigSkeleton: 'kimodo-compatible', hunyuanUsdz: 'available' };
-const loader = new GLTFLoader();
-loader.load('../assets/models/debug_native_glb.glb', (gltf) => {
-  loadedRobot = gltf.scene;
-  loadedRobot.name = 'KimodoCompatiblePrototype';
-  loadedRobot.rotation.y = Math.PI;
-  const box = new THREE.Box3().setFromObject(loadedRobot);
+let loadedUsdz = null;
+const kimodoViz = new THREE.Group(); character.add(kimodoViz);
+const kimodoJointMat = new THREE.MeshBasicMaterial({ color:0x56d7c8 });
+const kimodoLineMat = new THREE.LineBasicMaterial({ color:0x54a8ff, transparent:true, opacity:.78 });
+const kimodoJoints = [];
+let kimodoLines = null;
+const kimodoEdges = [[0,1],[1,2],[2,3],[3,4],[1,5],[5,6],[6,7],[1,8],[8,9],[9,10],[0,11],[11,12],[12,13],[0,14],[14,15],[15,16]];
+window.stageRehearsalAssets = { rigModel: 'loading', rigSkeleton: 'kimodo-compatible', hunyuanUsdz: 'default', kimodoMotion: 'idle' };
+for (let i = 0; i < 64; i++) {
+  const joint = new THREE.Mesh(new THREE.SphereGeometry(.035, 10, 8), kimodoJointMat);
+  joint.visible = false;
+  kimodoViz.add(joint);
+  kimodoJoints.push(joint);
+}
+function fitCharacterObject(object, targetHeight=2.15) {
+  object.rotation.y = Math.PI;
+  const box = new THREE.Box3().setFromObject(object);
   const size = box.getSize(new THREE.Vector3());
-  const targetHeight = 2.15;
-  loadedRobot.scale.setScalar(size.y > 0 ? targetHeight / size.y : 1);
-  const scaledBox = new THREE.Box3().setFromObject(loadedRobot);
+  object.scale.setScalar(size.y > 0 ? targetHeight / size.y : 1);
+  const scaledBox = new THREE.Box3().setFromObject(object);
   const center = scaledBox.getCenter(new THREE.Vector3());
-  loadedRobot.position.set(-center.x, -scaledBox.min.y, -center.z);
-  loadedRobot.traverse((node) => {
+  object.position.set(-center.x, -scaledBox.min.y, -center.z);
+  object.traverse((node) => {
     if (node.isMesh) {
       node.castShadow = true;
       node.frustumCulled = false;
     }
   });
+}
+function refreshCharacterVisibility() {
+  const showFallback = state.characterPreset === 'fallback' || (!loadedUsdz && !loadedRobot);
+  Object.values(fallbackRig).forEach(mesh => mesh.visible = showFallback);
+  if (loadedUsdz) loadedUsdz.visible = state.characterPreset === 'hunyuan';
+  if (loadedRobot) loadedRobot.visible = state.characterPreset === 'kimodo' || (!loadedUsdz && state.characterPreset === 'hunyuan');
+  kimodoViz.visible = !!state.kimodoMotion && state.characterPreset !== 'fallback';
+}
+
+const loader = new GLTFLoader();
+const usdzLoader = new USDZLoader();
+usdzLoader.load('../assets/models/IozsL7ZmHiVHopD-D3_ay.usdz', (group) => {
+  loadedUsdz = group;
+  loadedUsdz.name = 'HunyuanUSDZPrototype';
+  fitCharacterObject(loadedUsdz, 2.1);
+  character.add(loadedUsdz);
+  window.stageRehearsalAssets.hunyuanUsdz = 'loaded';
+  refreshCharacterVisibility();
+  toast(state.lang === 'zh' ? '\u5df2\u52a0\u8f7d\u6df7\u5143 USDZ \u539f\u578b' : 'Hunyuan USDZ prototype loaded', 'success');
+}, undefined, () => {
+  window.stageRehearsalAssets.hunyuanUsdz = 'fallback-to-glb';
+  refreshCharacterVisibility();
+});
+loader.load('../assets/models/debug_native_glb.glb', (gltf) => {
+  loadedRobot = gltf.scene;
+  loadedRobot.name = 'KimodoCompatiblePrototype';
+  fitCharacterObject(loadedRobot, 2.15);
   character.add(loadedRobot);
-  Object.values(fallbackRig).forEach(mesh => mesh.visible = false);
   window.stageRehearsalAssets.rigModel = 'loaded';
+  refreshCharacterVisibility();
   toast(state.lang === 'zh' ? '\u5df2\u52a0\u8f7d Kimodo \u9aa8\u9abc GLB \u539f\u578b' : 'Kimodo skeleton GLB loaded', 'success');
 }, undefined, () => {
-  Object.values(fallbackRig).forEach(mesh => mesh.visible = true);
   window.stageRehearsalAssets.rigModel = 'fallback';
+  refreshCharacterVisibility();
   toast(state.lang === 'zh' ? '\u9aa8\u9abc GLB \u52a0\u8f7d\u5931\u8d25\uff0c\u5df2\u4f7f\u7528\u53ef\u89c1\u515c\u5e95\u89d2\u8272' : 'Rigged GLB failed to load; fallback character is visible', 'error');
 });
+
+function setCharacterPreset(name) {
+  state.characterPreset = name;
+  document.querySelectorAll('.preset').forEach(btn => btn.classList.toggle('active', btn.dataset.character === name));
+  refreshCharacterVisibility();
+  window.stageRehearsalAssets.hunyuanUsdz = name === 'hunyuan' ? 'default' : 'available';
+  const msg = name === 'hunyuan'
+    ? (state.lang === 'zh' ? '\u5df2\u9009\u62e9\u6df7\u5143 USDZ \u539f\u578b\uff0c\u6d4f\u89c8\u5668\u5185\u4f7f\u7528 GLB \u9aa8\u9abc\u9884\u89c8' : 'Hunyuan USDZ preset selected; GLB rig preview remains active in browser')
+    : name === 'kimodo'
+      ? (state.lang === 'zh' ? '\u5df2\u9009\u62e9 Kimodo GLB \u9aa8\u9abc' : 'Kimodo GLB rig selected')
+      : (state.lang === 'zh' ? '\u5df2\u9009\u62e9\u7a0b\u5e8f\u5316\u515c\u5e95\u89d2\u8272' : 'Procedural fallback selected');
+  toast(msg, 'success');
+}
+
+function normalizeKimodoMotion(motion) {
+  if (!motion || !Array.isArray(motion.frames) || !motion.frames.length) return null;
+  const frames = motion.frames.map((frame) => {
+    const flat = frame.joint_positions || [];
+    const pts = [];
+    for (let i = 0; i + 2 < flat.length; i += 3) pts.push(new THREE.Vector3(flat[i], flat[i + 1], flat[i + 2]));
+    return pts;
+  }).filter(pts => pts.length);
+  if (!frames.length) return null;
+  const box = new THREE.Box3();
+  frames.forEach(pts => pts.forEach(p => box.expandByPoint(p)));
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const scale = size.y > 0 ? 2.15 / size.y : 1;
+  return { frames, fps: motion.fps || 24, numJoints: motion.num_joints || frames[0].length, center, minY: box.min.y, scale, model: motion.model || '' };
+}
+
+function setKimodoStatus(text, type='') {
+  $('kimodo-status').textContent = text;
+  $('kimodo-status').style.color = type === 'error' ? 'var(--red)' : type === 'success' ? 'var(--green)' : 'var(--muted)';
+}
+
+function formatKimodoError(err) {
+  const msg = String(err?.message || err || '');
+  if (/snapshot folder|Hub|ConnectTimeout|WinError 10060|offline/i.test(msg)) {
+    return state.lang === 'zh'
+      ? 'Kimodo \u6a21\u578b\u7f13\u5b58\u7f3a\u5931\u6216\u79bb\u7ebf\u73af\u5883\u65e0\u6cd5\u4e0b\u8f7d\u3002\u8bf7\u8865\u9f50 HuggingFace \u672c\u5730\u5feb\u7167\uff0c\u6216\u5141\u8bb8 Kimodo \u8054\u7f51\u540e\u91cd\u8bd5\u3002'
+      : 'Kimodo model cache is missing, or the offline environment cannot download the model snapshot. Add the local HuggingFace snapshot or allow Kimodo network access, then retry.';
+  }
+  return msg.slice(0, 360);
+}
+
+function kimodoPromptFromBrief(text) {
+  const lower = text.toLowerCase();
+  if (/walk|run|jump|dance|wave|turn|kick/.test(lower)) return text;
+  if (/\u8dd1|\u5954|\u5feb\u901f/.test(text)) return 'a humanoid robot runs forward with energetic arm swings.';
+  if (/\u8df3|\u821e|\u8282\u594f|\u7bc0\u594f/.test(text)) return 'a humanoid robot dances rhythmically with expressive arm and leg motion.';
+  if (/\u6325|\u62db\u624b|\u624b/.test(text)) return 'a humanoid robot waves one hand and shifts its weight naturally.';
+  return 'a humanoid robot dances rhythmically with expressive arm and leg motion.';
+}
+
+function applyKimodoMotion(time) {
+  const motion = state.kimodoMotion;
+  if (!motion || !motion.frames.length) {
+    kimodoJoints.forEach(j => j.visible = false);
+    if (kimodoLines) kimodoLines.visible = false;
+    return;
+  }
+  const idx = Math.floor((time * motion.fps) % motion.frames.length);
+  const pts = motion.frames[idx];
+  const transformed = pts.map(p => new THREE.Vector3(
+    (p.x - motion.center.x) * motion.scale,
+    (p.y - motion.minY) * motion.scale,
+    (p.z - motion.center.z) * motion.scale
+  ));
+  kimodoJoints.forEach((joint, i) => {
+    joint.visible = i < transformed.length && i < motion.numJoints;
+    if (joint.visible) joint.position.copy(transformed[i]);
+  });
+  const vertices = [];
+  kimodoEdges.forEach(([a,b]) => {
+    if (transformed[a] && transformed[b]) vertices.push(transformed[a].x, transformed[a].y, transformed[a].z, transformed[b].x, transformed[b].y, transformed[b].z);
+  });
+  if (!kimodoLines) {
+    kimodoLines = new THREE.LineSegments(new THREE.BufferGeometry(), kimodoLineMat);
+    kimodoViz.add(kimodoLines);
+  }
+  kimodoLines.geometry.dispose();
+  kimodoLines.geometry = new THREE.BufferGeometry();
+  kimodoLines.geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  kimodoLines.visible = vertices.length > 0;
+}
+
+async function generateKimodoMotion() {
+  const base = $('kimodo-url').value.trim().replace(/\/$/, '');
+  const prompt = kimodoPromptFromBrief($('prompt').value.trim() || 'a robot dances with rhythmic arm motions');
+  const model = $('kimodo-model').value;
+  setKimodoStatus(state.lang === 'zh' ? '\u6b63\u5728\u8fde\u63a5 Kimodo Bridge...' : 'Connecting to Kimodo Bridge...');
+  window.stageRehearsalAssets.kimodoMotion = 'generating';
+  try {
+    const health = await fetch(`${base}/health`);
+    if (!health.ok) throw new Error(`Kimodo health ${health.status}`);
+    const response = await fetch(`${base}/generate`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body:JSON.stringify({ prompt, duration:Math.min(state.duration, 4), diffusion_steps:8, model, num_samples:1, output_format:'json', post_processing:false })
+    });
+    if (!response.ok) throw new Error(`Kimodo generate ${response.status}`);
+    const result = await response.json();
+    if (result.type === 'error') throw new Error(result.message || 'Kimodo generation failed');
+    const motion = normalizeKimodoMotion(result.motion_data);
+    if (!motion) throw new Error('Kimodo returned no joint positions');
+    state.kimodoMotion = motion;
+    state.duration = Math.max(1, motion.frames.length / motion.fps);
+    $('duration').value = Math.min(24, Math.max(5, Math.round(state.duration)));
+    $('duration-val').textContent = `${state.duration.toFixed(1)}s`;
+    state.animKeys = motion.frames.map((_, i) => ({ time:i / motion.fps, kimodo:1 }));
+    state.playing = true; $('btn-play').textContent = 'Pause';
+    setCharacterPreset(state.characterPreset === 'fallback' ? 'kimodo' : state.characterPreset);
+    renderCards(); updateFills(); updateTimeline();
+    window.stageRehearsalAssets.kimodoMotion = 'loaded';
+    setKimodoStatus(state.lang === 'zh' ? `Kimodo \u52a8\u4f5c\u5df2\u52a0\u8f7d\uff1a${motion.frames.length} \u5e27 / ${motion.numJoints} \u5173\u8282\uff08\u8fd0\u52a8\u63d0\u793a\uff1a${prompt}\uff09` : `Kimodo motion loaded: ${motion.frames.length} frames / ${motion.numJoints} joints. Prompt: ${prompt}`, 'success');
+  } catch (err) {
+    window.stageRehearsalAssets.kimodoMotion = 'error';
+    setKimodoStatus((state.lang === 'zh' ? 'Kimodo \u751f\u6210\u5931\u8d25\uff1a' : 'Kimodo generation failed: ') + formatKimodoError(err), 'error');
+    toast((state.lang === 'zh' ? 'Kimodo \u751f\u6210\u5931\u8d25\uff0c\u5df2\u4fdd\u7559\u672c\u5730\u9884\u6f14' : 'Kimodo failed; local rehearsal remains available'), 'error');
+  }
+}
 
 function generateAnim() {
   const keys = [];
@@ -508,6 +716,7 @@ function generateLight() {
   state.lightKeys = keys; renderCards(); updateFills(); toast(state.lang === 'zh' ? '\u706f\u5149 Cue \u5df2\u751f\u6210' : 'Lighting cues generated', 'success');
 }
 function generateAll(){ generateAnim(); generateCam(); generateLight(); state.playing = true; $('btn-play').textContent = 'Pause'; }
+async function generateAllWithKimodo(){ await generateKimodoMotion(); generateCam(); generateLight(); state.playing = true; $('btn-play').textContent = 'Pause'; }
 
 function applyStyle(name) {
   state.style = name;
@@ -521,6 +730,8 @@ function applyAnim(time) {
   if (!state.animKeys.length) return;
   character.position.set(sample(state.animKeys,time,'x'), 0, sample(state.animKeys,time,'z'));
   character.rotation.y = Math.sin(time * state.energy * 1.7) * 0.28;
+  applyKimodoMotion(time);
+  if (state.kimodoMotion) return;
   if (loadedRobot) {
     loadedRobot.position.y = Math.sin(time * state.energy * Math.PI * 2) * 0.04;
   }
@@ -546,7 +757,7 @@ function renderCards() {
   const empty = state.lang === 'zh' ? '\u5c1a\u672a\u751f\u6210' : 'Not generated';
   const card = (id, title, keys, field) => {
     const el = $(id);
-    const rows = keys.slice(0, 4).map(k => `<div class="cue"><span>${k.time.toFixed(2)}s</span><span>${Number(k[field] ?? 0).toFixed(2)}</span></div>`).join('');
+    const rows = keys.slice(0, 4).map(k => `<div class="cue"><span>${k.time.toFixed(2)}s</span><span>${k.kimodo ? 'Kimodo' : Number(k[field] ?? 0).toFixed(2)}</span></div>`).join('');
     el.innerHTML = `<div class="h"><span>${title}</span><span class="count">${keys.length}</span></div>${keys.length ? rows : `<span style="color:var(--muted)">${empty}</span>`}`;
   };
   card('card-anim', state.lang === 'zh' ? '\u52a8\u4f5c' : 'Motion', state.animKeys, 'armL');
@@ -602,7 +813,7 @@ const Bridge = {
         { id:'key', color:sampleColor('c1'), intensity:+sample(state.lightKeys,t,'key').toFixed(3), pos:[+keyLight.position.x.toFixed(3), +keyLight.position.y.toFixed(3), +keyLight.position.z.toFixed(3)] },
         { id:'rim', color:sampleColor('c2'), intensity:+rimLight.intensity.toFixed(3), pos:[+rimLight.position.x.toFixed(3), +rimLight.position.y.toFixed(3), +rimLight.position.z.toFixed(3)] }
       ] : [],
-      character: state.animKeys.length ? { pos:[+character.position.x.toFixed(3), 0, +character.position.z.toFixed(3)], boneRot:{ head:[0,+head.rotation.y.toFixed(3),0], armL:[0,0,+armL.rotation.z.toFixed(3)], armR:[0,0,+armR.rotation.z.toFixed(3)], legL:[+legL.rotation.x.toFixed(3),0,0], legR:[+legR.rotation.x.toFixed(3),0,0] } } : null,
+      character: state.kimodoMotion ? { source:'kimodo', frame:Math.floor((state.time * state.kimodoMotion.fps) % state.kimodoMotion.frames.length), joints:state.kimodoMotion.numJoints, model:state.kimodoMotion.model } : state.animKeys.length ? { source:'fallback', pos:[+character.position.x.toFixed(3), 0, +character.position.z.toFixed(3)], boneRot:{ head:[0,+head.rotation.y.toFixed(3),0], armL:[0,0,+armL.rotation.z.toFixed(3)], armR:[0,0,+armR.rotation.z.toFixed(3)], legL:[+legL.rotation.x.toFixed(3),0,0], legR:[+legR.rotation.x.toFixed(3),0,0] } } : null,
       source:{ app:'stage-rehearsal', fps }
     };
     this.ws.send(JSON.stringify(frame)); state.sent++;
@@ -648,15 +859,24 @@ document.querySelectorAll('.chip').forEach(chip => chip.addEventListener('click'
   chip.classList.add('active'); applyStyle(chip.dataset.style); if (state.lightKeys.length) generateLight();
 }));
 $('lang-select').addEventListener('change', e => applyLanguage(e.target.value));
-$('btn-gen-anim').addEventListener('click', generateAnim);
+$('btn-gen-anim').addEventListener('click', generateKimodoMotion);
 $('btn-gen-cam').addEventListener('click', generateCam);
 $('btn-gen-light').addEventListener('click', generateLight);
-$('btn-generate-all').addEventListener('click', generateAll);
-$('btn-brief-generate').addEventListener('click', generateAll);
+$('btn-fallback-motion').addEventListener('click', () => { state.kimodoMotion = null; applyKimodoMotion(0); generateAnim(); });
+$('btn-generate-all').addEventListener('click', generateAllWithKimodo);
+$('btn-brief-generate').addEventListener('click', generateAllWithKimodo);
+$('btn-kimodo-generate').addEventListener('click', generateKimodoMotion);
+document.querySelectorAll('.preset').forEach(btn => btn.addEventListener('click', () => setCharacterPreset(btn.dataset.character)));
 $('btn-play').addEventListener('click', () => { state.playing = !state.playing; $('btn-play').textContent = state.playing ? 'Pause' : 'Play'; });
-$('btn-reset').addEventListener('click', () => { state.time = 0; state.playing = false; state.animKeys = []; state.camKeys = []; state.lightKeys = []; $('btn-play').textContent = 'Play'; renderCards(); updateFills(); updateTimeline(); });
+$('btn-reset').addEventListener('click', () => { state.time = 0; state.playing = false; state.animKeys = []; state.camKeys = []; state.lightKeys = []; state.kimodoMotion = null; applyKimodoMotion(0); $('btn-play').textContent = 'Play'; renderCards(); updateFills(); updateTimeline(); setKimodoStatus(t('kimodoIdle')); });
 $('btn-export').addEventListener('click', () => {
-  const data = { meta:{ product:'AI Digital Rehearsal', exportedAt:new Date().toISOString(), duration:state.duration, style:state.style, prompt:$('prompt').value }, animation:state.animKeys, camera:state.camKeys, lighting:state.lightKeys };
+  const kimodo = state.kimodoMotion ? {
+    fps:state.kimodoMotion.fps,
+    numJoints:state.kimodoMotion.numJoints,
+    model:state.kimodoMotion.model,
+    frames:state.kimodoMotion.frames.map(frame => frame.map(p => [+p.x.toFixed(6), +p.y.toFixed(6), +p.z.toFixed(6)]))
+  } : null;
+  const data = { meta:{ product:'AI Digital Rehearsal', exportedAt:new Date().toISOString(), duration:state.duration, style:state.style, prompt:$('prompt').value, characterPreset:state.characterPreset }, animation:state.animKeys, kimodo, camera:state.camKeys, lighting:state.lightKeys };
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)], { type:'application/json' })); a.download = `stage-rehearsal-${Date.now()}.json`; a.click(); URL.revokeObjectURL(a.href);
 });
 $('btn-connect').addEventListener('click', () => Bridge.connect($('bridge-url').value.trim()));
