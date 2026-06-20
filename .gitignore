@@ -26,3 +26,6 @@ docs/plan/
 # Keep the public demo model
 !assets/models/
 !assets/models/RobotExpressive.glb
+!assets/models/hunyuan-prototype.fbx
+!assets/refs/
+!assets/refs/REPO.png

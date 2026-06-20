@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StageRehearsal Docs</title>
+<style>
+  @font-face { font-family: Outfit; src: url('../_shared/fonts/Outfit-Regular.ttf') format('truetype'); font-weight: 400; }
+  @font-face { font-family: Outfit; src: url('../_shared/fonts/Outfit-Bold.ttf') format('truetype'); font-weight: 700; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0b0d11; color: #edf0f5; font-family: Outfit, "Microsoft YaHei", Arial, sans-serif; }
+  header { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 16px 28px; border-bottom: 1px solid #2b313d; background: rgba(11,13,17,.94); }
+  .brand { font-weight: 700; font-size: 18px; }
+  nav { display: flex; gap: 10px; flex-wrap: wrap; }
+  nav a, .btn { color: #edf0f5; text-decoration: none; border: 1px solid #303744; background: #171b23; padding: 8px 12px; border-radius: 6px; }
+  nav a:hover, .btn:hover { border-color: #54a8ff; }
+  main { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 28px; max-width: 1240px; margin: 0 auto; padding: 28px; }
+  aside { position: sticky; top: 76px; height: calc(100vh - 104px); border-right: 1px solid #252b35; padding-right: 18px; }
+  aside a { display: block; color: #9aa4b5; text-decoration: none; padding: 9px 10px; border-radius: 6px; }
+  aside a:hover { color: white; background: #151922; }
+  section { margin-bottom: 34px; padding: 24px; border: 1px solid #2b313d; border-radius: 8px; background: #11151d; }
+  h1 { font-size: 40px; margin: 0 0 14px; }
+  h2 { margin: 0 0 14px; font-size: 24px; }
+  h3 { margin: 18px 0 8px; color: #cbd5e1; }
+  p, li { color: #a7b0c0; line-height: 1.7; }
+  code, pre { font-family: Consolas, monospace; }
+  pre { overflow: auto; background: #080a0f; border: 1px solid #252b35; padding: 14px; border-radius: 7px; color: #dbeafe; }
+  .hero { border: 0; background: linear-gradient(135deg, #121722, #0d1118); padding: 34px; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .card { border: 1px solid #2b313d; border-radius: 8px; padding: 16px; background: #0d1017; }
+  .tag { display: inline-flex; color: #56d7c8; border: 1px solid rgba(86,215,200,.35); padding: 3px 7px; border-radius: 5px; font-size: 12px; margin-bottom: 10px; }
+  @media (max-width: 820px) { main { display: block; padding: 16px; } aside { position: static; height: auto; border-right: 0; padding-right: 0; margin-bottom: 16px; } .grid { grid-template-columns: 1fr; } header { align-items: flex-start; flex-direction: column; gap: 12px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">StageRehearsal Docs</div>
+  <nav>
+    <a href="../demo/">交互 Demo</a>
+    <a href="../">首页</a>
+    <a href="https://github.com/EndToFx/StageRehearsal">GitHub</a>
+  </nav>
+</header>
+<main>
+  <aside>
+    <a href="#quickstart">快速开始</a>
+    <a href="#demo">前端 Demo</a>
+    <a href="#pages">GitHub Pages</a>
+    <a href="#unreal">Unreal 联动</a>
+    <a href="#export">数据导出</a>
+    <a href="#assets">资产与授权</a>
+  </aside>
+  <div>
+    <section class="hero">
+      <span class="tag">Public Demo Guide</span>
+      <h1>StageRehearsal 专业文档</h1>
+      <p>这里整理了公网演示、前端操作、Unreal 实时联动和数据导出的最短路径。公开仓库只包含静态网站和可再分发测试资产。</p>
+      <a class="btn" href="../demo/">打开交互 Demo</a>
+    </section>
+
+    <section id="quickstart">
+      <h2>快速开始</h2>
+      <div class="grid">
+        <div class="card"><h3>本地预览</h3><pre>node serve.js
+http://localhost:8000/demo/</pre></div>
+        <div class="card"><h3>公网访问</h3><pre>https://endtofx.github.io/StageRehearsal/demo/</pre></div>
+      </div>
+    </section>
+
+    <section id="demo">
+      <h2>前端 Demo 使用</h2>
+      <p>页面默认中文，可切换英文。左侧输入创意描述，点击“一键生成预演”即可同时生成动作、运镜和灯光。中间是 3D 预览舞台，右侧展示关键帧和资产信息。</p>
+      <ul>
+        <li>动作：生成机器人角色节奏动作。</li>
+        <li>运镜：生成围绕角色的摄像机轨迹。</li>
+        <li>灯光：生成舞台主光与轮廓光 Cue。</li>
+        <li>原型角色：使用 REPO.png 作为参考，并提供混元 3D 生成的 FBX 下载。</li>
+      </ul>
+    </section>
+
+    <section id="pages">
+      <h2>GitHub Pages 发布</h2>
+      <ol>
+        <li>提交并推送到 <code>EndToFx/StageRehearsal</code> 的 <code>main</code> 分支。</li>
+        <li>打开 GitHub 仓库的 <code>Settings -> Pages</code>。</li>
+        <li>Source 选择 <code>Deploy from a branch</code>。</li>
+        <li>Branch 选择 <code>main</code>，Folder 选择 <code>/ (root)</code>。</li>
+      </ol>
+    </section>
+
+    <section id="unreal">
+      <h2>Unreal 实时联动</h2>
+      <p>公网 Demo 不能直接访问本机 Unreal。需要在本机运行 WebSocket bridge，然后让页面连接 <code>ws://localhost:9090</code>。</p>
+      <pre>python bridge/ue_bridge.py --port 9090</pre>
+      <p>建议推送 FPS 保持在 8-10，避免编辑器和浏览器过载。</p>
+    </section>
+
+    <section id="export">
+      <h2>数据导出与第三方导入</h2>
+      <p>点击“导出 JSON”会下载包含 animation、camera、lighting 的结构化文件。Unreal、Blender、TouchDesigner 都可以通过脚本读取该 JSON，并映射到相机、灯光和角色控制器。</p>
+      <pre>{
+  "animation": [],
+  "camera": [],
+  "lighting": []
+}</pre>
+    </section>
+
+    <section id="assets">
+      <h2>资产与授权</h2>
+      <p><code>REPO.png</code> 和 <code>hunyuan-prototype.fbx</code> 来自你提供的混元 3D 3.1 原型参考。大型 USDZ 文件未放入公开仓库。测试用 <code>RobotExpressive.glb</code> 来自 three.js 示例，授权为 CC0 1.0。</p>
+    </section>
+  </div>
+</main>
+</body>
+</html>

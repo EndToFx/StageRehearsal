@@ -107,10 +107,10 @@
   .dot.connected { background: var(--green); box-shadow: 0 0 12px rgba(107,209,120,.7); }
   .dot.connecting { background: var(--amber); }
   .meter { display: grid; grid-template-columns: 1fr auto; gap: 8px; color: var(--muted); margin-top: 6px; }
-  .timeline {
-    background: #0d0f14; border-top: 1px solid var(--line); padding: 10px 14px;
-    display: grid; grid-template-rows: 30px 1fr; gap: 8px;
-  }
+  .reference-card { border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); overflow: hidden; }
+  .reference-card img { display: block; width: 100%; max-height: 190px; object-fit: contain; background: #07080c; }
+  .reference-meta { padding: 9px; color: var(--muted); line-height: 1.45; }
+  .model-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
   .tl-top { display: flex; align-items: center; justify-content: space-between; }
   .tl-left, .tl-right { display: flex; align-items: center; gap: 8px; }
   .tracks { display: grid; gap: 6px; }
@@ -160,7 +160,7 @@
     <aside class="sidebar">
       <section class="section">
         <div class="section-head"><div class="section-title" data-i18n="creativeBrief">Creative Brief</div><span class="pill">PROMPT</span></div>
-        <textarea id="prompt">&#19968;&#20010;&#39640;&#36895;&#333?;&#21488;&#39044;&#28436;&#65306;&#26426;&#22120;&#20154;&#35282;&#33394;&#36827;&#34892;&#26377;&#33410;&#22863;&#30340;&#21160;&#20316;&#65292;&#38236;&#22836;&#29615;&#32469;&#25512;&#36827;&#65292;&#28783;&#20809;&#36319;&#38543;&#33410;&#25293;&#21464;&#21270;&#12290;</textarea>
+        <textarea id="prompt">&#19968;&#20010;&#39640;&#36895;&#33310;&#21488;&#39044;&#28436;&#65306;&#22278;&#31570;&#26426;&#22120;&#20154;&#35282;&#33394;&#36827;&#34892;&#26377;&#33410;&#22863;&#30340;&#21160;&#20316;&#65292;&#38236;&#22836;&#29615;&#32469;&#25512;&#36827;&#65292;&#28783;&#20809;&#36319;&#38543;&#33410;&#25293;&#21464;&#21270;&#12290;</textarea><button class="btn primary" id="btn-brief-generate" data-i18n="briefGenerate" style="width:100%;margin-top:8px;">Generate Rehearsal</button>
         <label data-i18n="stageStyle">Stage style</label>
         <div class="seg" id="style-grid">
           <button class="chip active" data-style="studio" data-i18n="styleStudio">Blackbox Studio</button>
@@ -180,6 +180,18 @@
         <div class="slider-row"><span data-i18n="duration">Duration</span><input id="duration" type="range" min="5" max="24" step="1" value="12"><span id="duration-val" class="mono">12s</span></div>
         <div class="slider-row"><span data-i18n="energy">Energy</span><input id="energy" type="range" min="0.2" max="2" step="0.1" value="1"><span id="energy-val" class="mono">1.0</span></div>
         <div class="slider-row"><span data-i18n="camera">Camera</span><input id="camera-intensity" type="range" min="0.2" max="2" step="0.1" value="1"><span id="camera-val" class="mono">1.0</span></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><div class="section-title" data-i18n="prototype">Prototype Character</div><span class="pill">HUNYUAN 3D</span></div>
+        <div class="reference-card">
+          <img src="../assets/refs/REPO.png" alt="Robot reference generated with Hunyuan 3D 3.1">
+          <div class="reference-meta" data-i18n="prototypeHint">Reference style: round robot, large eyes, short limbs. The page uses a visible procedural robot and keeps the Hunyuan FBX as a downloadable prototype asset.</div>
+        </div>
+        <div class="model-actions">
+          <a class="btn" href="../assets/models/hunyuan-prototype.fbx" download data-i18n="downloadFbx">Download FBX</a>
+          <button class="btn" id="btn-use-prototype" data-i18n="usePrototype">Use Prototype Look</button>
+        </div>
       </section>
 
       <section class="section">
@@ -219,8 +231,7 @@
       </section>
       <section class="section">
         <div class="section-head"><div class="section-title" data-i18n="githubDemo">GitHub Demo</div><span class="pill">PAGES</span></div>
-        <p style="color:var(--muted);line-height:1.55;margin:0;" data-i18n="githubHint">Push this folder to GitHub and enable Pages from the main branch. The public demo will serve /demo/.</p>
-        <button class="btn" id="btn-copy-demo" style="margin-top:10px;width:100%;" data-i18n="copyDemoPath">Copy demo path</button>
+        <p style="color:var(--muted);line-height:1.55;margin:0;" data-i18n="githubHint">Open the professional documentation center for publishing, Unreal bridge, and export workflow.</p><a class="btn" href="../docs/" style="margin-top:10px;width:100%;" data-i18n="copyDemoPath">Open Docs</a>
       </section>
       <section class="section">
         <div class="section-head"><div class="section-title" data-i18n="safety">Bridge Safety</div><span class="pill">SAFE</span></div>
@@ -255,7 +266,6 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -264,52 +274,90 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 const $ = (id) => document.getElementById(id);
 const copy = {
   en: {
-    appName:'AI Digital Rehearsal', reset:'Reset', export:'Export JSON', generateAll:'Generate All',
-    creativeBrief:'Creative Brief', stageStyle:'Stage style', styleStudio:'Blackbox Studio', styleConcert:'Live Concert', styleGallery:'Media Gallery', styleOpera:'Modern Opera',
-    generation:'Generation', genAnim:'Motion', genCam:'Camera', genLight:'Lighting', duration:'Duration', energy:'Energy', camera:'Camera',
-    ueBridge:'Unreal Bridge', disconnected:'Disconnected', connected:'Connected', connecting:'Connecting', bridgeUrl:'Bridge URL', connect:'Connect', disconnect:'Disconnect',
-    streamFps:'Stream FPS', sentFrames:'Sent frames', buffered:'Buffered', view:'View', style:'Style', keyframes:'Keyframes', githubDemo:'GitHub Demo',
-    githubHint:'Push this folder to GitHub and enable Pages from the main branch. The public demo will serve /demo/.',
-    copyDemoPath:'Copy demo path', safety:'Bridge Safety', safetyHint:'Streaming is capped, skips frames when the socket buffer grows, and disconnects before the browser or editor gets overwhelmed.',
+    appName:'AI Digital Rehearsal',
+    reset:'Reset',
+    export:'Export JSON',
+    generateAll:'Generate All',
+    briefGenerate:'Generate Rehearsal',
+    creativeBrief:'Creative Brief',
+    stageStyle:'Stage style',
+    styleStudio:'Blackbox Studio',
+    styleConcert:'Live Concert',
+    styleGallery:'Media Gallery',
+    styleOpera:'Modern Opera',
+    generation:'Generation',
+    genAnim:'Motion',
+    genCam:'Camera',
+    genLight:'Lighting',
+    duration:'Duration',
+    energy:'Energy',
+    camera:'Camera',
+    prototype:'Prototype Character',
+    prototypeHint:'Reference style: round robot, large eyes, short limbs. The page uses a visible procedural robot and keeps the Hunyuan FBX as a downloadable prototype asset.',
+    downloadFbx:'Download FBX',
+    usePrototype:'Use Prototype Look',
+    ueBridge:'Unreal Bridge',
+    disconnected:'Disconnected',
+    connected:'Connected',
+    connecting:'Connecting',
+    bridgeUrl:'Bridge URL',
+    connect:'Connect',
+    disconnect:'Disconnect',
+    streamFps:'Stream FPS',
+    sentFrames:'Sent frames',
+    buffered:'Buffered',
+    view:'View',
+    style:'Style',
+    keyframes:'Keyframes',
+    githubDemo:'Documentation',
+    githubHint:'Open the professional documentation center for publishing, Unreal bridge, and export workflow.',
+    copyDemoPath:'Open Docs',
+    safety:'Bridge Safety',
+    safetyHint:'Streaming is capped, skips frames when the socket buffer grows, and disconnects before the browser or editor gets overwhelmed.',
     speed:'Speed'
   },
   zh: {
-    appName:'AI \\u6570\\u5b57\\u9884\\u6f14\\u5de5\\u4f5c\\u53f0',
-    reset:'\\u91cd\\u7f6e',
-    export:'\\u5bfc\\u51fa JSON',
-    generateAll:'\\u751f\\u6210\\u5168\\u90e8',
-    creativeBrief:'\\u521b\\u610f\\u63cf\\u8ff0',
-    stageStyle:'\\u821e\\u53f0\\u98ce\\u683c',
-    styleStudio:'\\u9ed1\\u76d2\\u6392\\u7ec3\\u5385',
-    styleConcert:'\\u73b0\\u573a\\u6f14\\u5531\\u4f1a',
-    styleGallery:'\\u5a92\\u4f53\\u5c55\\u5385',
-    styleOpera:'\\u73b0\\u4ee3\\u5267\\u573a',
-    generation:'\\u751f\\u6210\\u6a21\\u5757',
-    genAnim:'\\u52a8\\u4f5c',
-    genCam:'\\u8fd0\\u955c',
-    genLight:'\\u706f\\u5149',
-    duration:'\\u65f6\\u957f',
-    energy:'\\u80fd\\u91cf',
-    camera:'\\u955c\\u5934',
-    ueBridge:'Unreal \\u8054\\u52a8',
-    disconnected:'\\u672a\\u8fde\\u63a5',
-    connected:'\\u5df2\\u8fde\\u63a5',
-    connecting:'\\u8fde\\u63a5\\u4e2d',
-    bridgeUrl:'\\u6865\\u63a5\\u5730\\u5740',
-    connect:'\\u8fde\\u63a5',
-    disconnect:'\\u65ad\\u5f00',
-    streamFps:'\\u63a8\\u9001 FPS',
-    sentFrames:'\\u5df2\\u53d1\\u9001\\u5e27',
-    buffered:'\\u7f13\\u51b2',
-    view:'\\u89c6\\u56fe',
-    style:'\\u98ce\\u683c',
-    keyframes:'\\u5173\\u952e\\u5e27',
-    githubDemo:'GitHub \\u6f14\\u793a',
-    githubHint:'\\u628a\\u8fd9\\u4e2a\\u76ee\\u5f55\\u63a8\\u9001\\u5230 GitHub\\uff0c\\u5e76\\u5728\\u4e3b\\u5206\\u652f\\u5f00\\u542f Pages\\u3002\\u5916\\u7f51 Demo \\u4f1a\\u4ece /demo/ \\u8bbf\\u95ee\\u3002',
-    copyDemoPath:'\\u590d\\u5236 Demo \\u8def\\u5f84',
-    safety:'\\u8054\\u52a8\\u4fdd\\u62a4',
-    safetyHint:'\\u63a8\\u6d41\\u5df2\\u9650\\u901f\\uff1b\\u5f53 WebSocket \\u7f13\\u51b2\\u53d8\\u5927\\u65f6\\u4f1a\\u8df3\\u5e27\\uff0c\\u8fc7\\u8f7d\\u524d\\u4f1a\\u4e3b\\u52a8\\u65ad\\u5f00\\uff0c\\u907f\\u514d\\u6d4f\\u89c8\\u5668\\u548c\\u7f16\\u8f91\\u5668\\u5361\\u6b7b\\u3002',
-    speed:'\\u901f\\u5ea6'
+    appName:'AI \u6570\u5b57\u9884\u6f14\u5de5\u4f5c\u53f0',
+    reset:'\u91cd\u7f6e',
+    export:'\u5bfc\u51fa JSON',
+    generateAll:'\u751f\u6210\u5168\u90e8',
+    briefGenerate:'\u4e00\u952e\u751f\u6210\u9884\u6f14',
+    creativeBrief:'\u521b\u610f\u63cf\u8ff0',
+    stageStyle:'\u821e\u53f0\u98ce\u683c',
+    styleStudio:'\u9ed1\u76d2\u6392\u7ec3\u5385',
+    styleConcert:'\u73b0\u573a\u6f14\u5531\u4f1a',
+    styleGallery:'\u5a92\u4f53\u5c55\u5385',
+    styleOpera:'\u73b0\u4ee3\u5267\u573a',
+    generation:'\u751f\u6210\u6a21\u5757',
+    genAnim:'\u52a8\u4f5c',
+    genCam:'\u8fd0\u955c',
+    genLight:'\u706f\u5149',
+    duration:'\u65f6\u957f',
+    energy:'\u80fd\u91cf',
+    camera:'\u955c\u5934',
+    prototype:'\u539f\u578b\u89d2\u8272',
+    prototypeHint:'\u53c2\u8003\u98ce\u683c\uff1a\u5706\u7b52\u673a\u5668\u4eba\u3001\u5927\u773c\u775b\u3001\u77ed\u624b\u77ed\u817f\u3002\u9875\u9762\u4f7f\u7528\u53ef\u89c1\u7684\u7a0b\u5e8f\u5316\u673a\u5668\u4eba\uff0c\u540c\u65f6\u4fdd\u7559\u6df7\u5143 FBX \u4f5c\u4e3a\u53ef\u4e0b\u8f7d\u539f\u578b\u8d44\u4ea7\u3002',
+    downloadFbx:'\u4e0b\u8f7d FBX',
+    usePrototype:'\u4f7f\u7528\u539f\u578b\u5916\u89c2',
+    ueBridge:'Unreal \u8054\u52a8',
+    disconnected:'\u672a\u8fde\u63a5',
+    connected:'\u5df2\u8fde\u63a5',
+    connecting:'\u8fde\u63a5\u4e2d',
+    bridgeUrl:'\u6865\u63a5\u5730\u5740',
+    connect:'\u8fde\u63a5',
+    disconnect:'\u65ad\u5f00',
+    streamFps:'\u63a8\u9001 FPS',
+    sentFrames:'\u5df2\u53d1\u9001\u5e27',
+    buffered:'\u7f13\u51b2',
+    view:'\u89c6\u56fe',
+    style:'\u98ce\u683c',
+    keyframes:'\u5173\u952e\u5e27',
+    githubDemo:'\u6587\u6863',
+    githubHint:'\u6253\u5f00\u4e13\u4e1a\u6587\u6863\u4e2d\u5fc3\uff0c\u67e5\u770b\u53d1\u5e03\u3001Unreal \u8054\u52a8\u548c\u5bfc\u51fa\u6d41\u7a0b\u3002',
+    copyDemoPath:'\u6253\u5f00\u6587\u6863',
+    safety:'\u8054\u52a8\u4fdd\u62a4',
+    safetyHint:'\u63a8\u6d41\u5df2\u9650\u901f\uff1b\u5f53 WebSocket \u7f13\u51b2\u53d8\u5927\u65f6\u4f1a\u8df3\u5e27\uff0c\u8fc7\u8f7d\u524d\u4f1a\u4e3b\u52a8\u65ad\u5f00\uff0c\u907f\u514d\u6d4f\u89c8\u5668\u548c\u7f16\u8f91\u5668\u5361\u6b7b\u3002',
+    speed:'\u901f\u5ea6'
   }
 };
 
@@ -388,10 +436,10 @@ const mats = {
   glow: new THREE.MeshBasicMaterial({ color:0x56d7c8 })
 };
 function part(mesh, pos, scale) { mesh.position.set(...pos); mesh.scale.set(...scale); character.add(mesh); return mesh; }
-const body = part(new THREE.Mesh(new THREE.CapsuleGeometry(.42, 1.05, 8, 20), mats.body), [0,1.05,0], [1,1,1]);
-const head = part(new THREE.Mesh(new THREE.SphereGeometry(.42, 32, 18), mats.body), [0,2.0,0], [1,.82,1]);
-const eyeL = part(new THREE.Mesh(new THREE.SphereGeometry(.075, 16, 10), mats.glow), [-.15,2.04,.34], [1,1,1]);
-const eyeR = part(new THREE.Mesh(new THREE.SphereGeometry(.075, 16, 10), mats.glow), [.15,2.04,.34], [1,1,1]);
+const body = part(new THREE.Mesh(new THREE.CylinderGeometry(.44, .52, 1.08, 32), mats.body), [0,1.05,0], [1,1,1]);
+const head = part(new THREE.Mesh(new THREE.SphereGeometry(.46, 32, 18), mats.body), [0,1.78,0], [1,.72,1]);
+const eyeL = part(new THREE.Mesh(new THREE.SphereGeometry(.105, 24, 12), mats.glow), [-.16,1.82,.33], [1,1,1]);
+const eyeR = part(new THREE.Mesh(new THREE.SphereGeometry(.105, 24, 12), mats.glow), [.16,1.82,.33], [1,1,1]);
 const armL = part(new THREE.Mesh(new THREE.CapsuleGeometry(.09, .82, 8, 12), mats.dark), [-.55,1.15,0], [1,1,1]);
 const armR = part(new THREE.Mesh(new THREE.CapsuleGeometry(.09, .82, 8, 12), mats.dark), [.55,1.15,0], [1,1,1]);
 const legL = part(new THREE.Mesh(new THREE.CapsuleGeometry(.11, .8, 8, 12), mats.dark), [-.22,.34,0], [1,1,1]);
@@ -399,18 +447,6 @@ const legR = part(new THREE.Mesh(new THREE.CapsuleGeometry(.11, .8, 8, 12), mats
 
 const fallbackRig = { body, head, eyeL, eyeR, armL, armR, legL, legR };
 let loadedRobot = null;
-new GLTFLoader().load('../assets/models/RobotExpressive.glb', (gltf) => {
-  loadedRobot = gltf.scene;
-  loadedRobot.name = 'RobotExpressive';
-  loadedRobot.scale.setScalar(0.42);
-  loadedRobot.position.set(0, 0, 0);
-  loadedRobot.rotation.y = Math.PI;
-  character.add(loadedRobot);
-  Object.values(fallbackRig).forEach(mesh => mesh.visible = false);
-  toast(state.lang === 'zh' ? '\u9ed8\u8ba4\u6d4b\u8bd5\u673a\u5668\u4eba\u6a21\u578b\u5df2\u52a0\u8f7d' : 'Default test robot model loaded', 'success');
-}, undefined, () => {
-  toast(state.lang === 'zh' ? '\u673a\u5668\u4eba\u6a21\u578b\u52a0\u8f7d\u5931\u8d25\uff0c\u5df2\u4f7f\u7528\u5185\u7f6e\u7b80\u6a21' : 'Robot model failed to load; using fallback rig', 'error');
-});
 
 function generateAnim() {
   const keys = [];
@@ -442,7 +478,7 @@ function generateLight() {
   }
   state.lightKeys = keys; renderCards(); updateFills(); toast(state.lang === 'zh' ? '\u706f\u5149 Cue \u5df2\u751f\u6210' : 'Lighting cues generated', 'success');
 }
-function generateAll(){ generateAnim(); generateCam(); generateLight(); state.playing = true; $('Pause').textContent = 'Pause'; }
+function generateAll(){ generateAnim(); generateCam(); generateLight(); state.playing = true; $('btn-play').textContent = 'Pause'; }
 
 function applyStyle(name) {
   state.style = name;
@@ -587,8 +623,10 @@ $('btn-gen-anim').addEventListener('click', generateAnim);
 $('btn-gen-cam').addEventListener('click', generateCam);
 $('btn-gen-light').addEventListener('click', generateLight);
 $('btn-generate-all').addEventListener('click', generateAll);
+$('btn-brief-generate').addEventListener('click', generateAll);
+$('btn-use-prototype').addEventListener('click', () => { Object.values(fallbackRig).forEach(mesh => mesh.visible = true); if (loadedRobot) loadedRobot.visible = false; toast(state.lang === 'zh' ? '\u5df2\u5207\u6362\u4e3a\u539f\u578b\u673a\u5668\u4eba\u5916\u89c2' : 'Prototype robot look enabled', 'success'); });
 $('btn-play').addEventListener('click', () => { state.playing = !state.playing; $('btn-play').textContent = state.playing ? 'Pause' : 'Play'; });
-$('btn-reset').addEventListener('click', () => { state.time = 0; state.playing = false; state.animKeys = []; state.camKeys = []; state.lightKeys = []; $('Pause').textContent = 'Pause'; renderCards(); updateFills(); updateTimeline(); });
+$('btn-reset').addEventListener('click', () => { state.time = 0; state.playing = false; state.animKeys = []; state.camKeys = []; state.lightKeys = []; $('btn-play').textContent = 'Play'; renderCards(); updateFills(); updateTimeline(); });
 $('btn-export').addEventListener('click', () => {
   const data = { meta:{ product:'AI Digital Rehearsal', exportedAt:new Date().toISOString(), duration:state.duration, style:state.style, prompt:$('prompt').value }, animation:state.animKeys, camera:state.camKeys, lighting:state.lightKeys };
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)], { type:'application/json' })); a.download = `stage-rehearsal-${Date.now()}.json`; a.click(); URL.revokeObjectURL(a.href);
@@ -602,7 +640,6 @@ $('stream-fps').addEventListener('input', e => { $('stream-fps-val').textContent
 $('speed').addEventListener('change', e => { state.speed = Number(e.target.value); });
 $('btn-grid').addEventListener('click', () => { grid.visible = !grid.visible; });
 $('btn-view').addEventListener('click', () => { state.camView = !state.camView; $('view-mode').textContent = state.camView ? 'Camera' : 'Orbit'; });
-$('btn-copy-demo').addEventListener('click', async () => { await navigator.clipboard?.writeText('/demo/'); toast(state.lang === 'zh' ? '\u5df2\u590d\u5236 /demo/' : 'Copied /demo/', 'success'); });
 document.querySelectorAll('.track-bar').forEach(bar => bar.addEventListener('click', e => {
   const r = bar.getBoundingClientRect(); state.time = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * state.duration; updateTimeline();
 }));
