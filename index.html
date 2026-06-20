@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Digital Rehearsal</title>
+<style>
+  @font-face { font-family: Outfit; src: url('./_shared/fonts/Outfit-Regular.ttf') format('truetype'); font-weight: 400; }
+  @font-face { font-family: Outfit; src: url('./_shared/fonts/Outfit-Bold.ttf') format('truetype'); font-weight: 700; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    background: #090a0d; color: #edf0f5; font-family: Outfit, Arial, sans-serif;
+  }
+  main { width: min(720px, calc(100vw - 32px)); }
+  h1 { font-size: clamp(34px, 7vw, 72px); line-height: .95; margin: 0 0 18px; letter-spacing: 0; }
+  p { color: #98a2b3; font-size: 17px; line-height: 1.7; max-width: 620px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  a {
+    display: inline-flex; align-items: center; justify-content: center; min-height: 42px;
+    padding: 0 16px; border-radius: 7px; border: 1px solid #303541;
+    color: #edf0f5; text-decoration: none; background: #171a22; font-weight: 700;
+  }
+  a.primary { background: #2f7fd6; border-color: transparent; }
+  .note { margin-top: 30px; color: #667085; font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>AI Digital Rehearsal</h1>
+  <p>Public interactive rehearsal demo for motion, camera, lighting, and a browser-based 3D robot stage. The demo opens in Chinese by default and can switch to English.</p>
+  <div class="actions">
+    <a class="primary" href="./demo/">Open Interactive Demo</a>
+    <a href="./docs/github-pages-demo.md">GitHub Pages Guide</a>
+    <a href="./docs/demo-user-guide.md">Demo Guide</a>
+    <a href="./docs/unreal-realtime-bridge.md">Unreal Bridge Guide</a>
+  </div>
+  <div class="note">This public repository contains only the static website demo and redistributable test assets.</div>
+</main>
+</body>
+</html>

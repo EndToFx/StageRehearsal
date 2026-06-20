@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Digital Rehearsal Studio</title>
+<style>
+  @font-face { font-family: Outfit; src: url('../_shared/fonts/Outfit-Regular.ttf') format('truetype'); font-weight: 400; }
+  @font-face { font-family: Outfit; src: url('../_shared/fonts/Outfit-Bold.ttf') format('truetype'); font-weight: 700; }
+  @font-face { font-family: GeistMono; src: url('../_shared/fonts/GeistMono-Regular.ttf') format('truetype'); font-weight: 400; }
+  :root {
+    --bg: #090a0d;
+    --panel: #111319;
+    --panel-2: #171a22;
+    --panel-3: #1d222b;
+    --line: #303541;
+    --text: #edf0f5;
+    --muted: #8d96a8;
+    --dim: #5c6574;
+    --blue: #54a8ff;
+    --cyan: #56d7c8;
+    --pink: #f06fae;
+    --amber: #f3b45b;
+    --green: #6bd178;
+    --red: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; margin: 0; }
+  body {
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Outfit, "Microsoft YaHei", Arial, sans-serif;
+    font-size: 13px;
+  }
+  button, input, select, textarea { font: inherit; }
+  .app { display: grid; grid-template-rows: 48px 1fr 112px; height: 100%; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 48px; padding: 0 14px; border-bottom: 1px solid var(--line);
+    background: #0d0f14;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .mark { width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, var(--cyan), var(--pink)); }
+  .brand-title { font-weight: 700; letter-spacing: 0; white-space: nowrap; }
+  .brand-sub { color: var(--muted); font-family: GeistMono, monospace; font-size: 11px; white-space: nowrap; }
+  .top-actions { display: flex; align-items: center; gap: 8px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    min-height: 30px; padding: 0 11px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--panel-2); color: var(--text); cursor: pointer;
+  }
+  .btn:hover { border-color: var(--blue); color: #dfefff; }
+  .btn.primary { border-color: transparent; background: #2f7fd6; color: white; }
+  .btn.danger { color: #ffd9d9; border-color: rgba(255,107,107,.45); background: rgba(255,107,107,.12); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .icon-btn { width: 32px; height: 32px; padding: 0; }
+  .lang { width: 106px; height: 30px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); padding: 0 8px; }
+  .workspace { display: grid; grid-template-columns: 308px minmax(420px, 1fr) 312px; min-height: 0; }
+  .sidebar, .inspector {
+    min-height: 0; overflow-y: auto; background: var(--panel); padding: 12px;
+  }
+  .sidebar { border-right: 1px solid var(--line); }
+  .inspector { border-left: 1px solid var(--line); }
+  .section { padding: 0 0 14px; margin: 0 0 14px; border-bottom: 1px solid var(--line); }
+  .section:last-child { border-bottom: 0; margin-bottom: 0; }
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+  .section-title { color: var(--muted); font-family: GeistMono, monospace; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+  .pill { color: var(--cyan); border: 1px solid rgba(86,215,200,.35); background: rgba(86,215,200,.08); border-radius: 5px; padding: 2px 6px; font-family: GeistMono, monospace; font-size: 10px; }
+  label { display: block; color: var(--muted); font-size: 12px; margin: 9px 0 5px; }
+  textarea, input, select {
+    width: 100%; border: 1px solid var(--line); border-radius: 6px; background: #0b0d12;
+    color: var(--text); padding: 8px 9px; outline: none;
+  }
+  textarea { min-height: 74px; resize: vertical; line-height: 1.45; }
+  input:focus, textarea:focus, select:focus { border-color: var(--blue); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+    border-radius: 6px; padding: 8px; cursor: pointer; text-align: left;
+  }
+  .chip.active { color: white; border-color: var(--blue); background: rgba(84,168,255,.16); }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > * { min-width: 0; }
+  .grow { flex: 1; }
+  .slider-row { display: grid; grid-template-columns: 78px 1fr 42px; align-items: center; gap: 8px; margin-top: 9px; color: var(--muted); }
+  input[type="range"] { accent-color: var(--blue); padding: 0; }
+  .mono { font-family: GeistMono, monospace; }
+  .stage {
+    position: relative; min-width: 0; min-height: 0; background: #050609;
+  }
+  #stage-canvas { display: block; width: 100%; height: 100%; }
+  .hud { position: absolute; left: 12px; top: 12px; display: grid; gap: 6px; pointer-events: none; }
+  .badge { border: 1px solid rgba(255,255,255,.12); background: rgba(10,12,17,.78); border-radius: 6px; padding: 5px 8px; color: var(--muted); font-family: GeistMono, monospace; }
+  .badge b { color: var(--text); font-weight: 400; }
+  .tools { position: absolute; top: 12px; right: 12px; display: flex; gap: 7px; }
+  .toast-wrap { position: fixed; left: 50%; bottom: 128px; transform: translateX(-50%); display: grid; gap: 7px; z-index: 10; }
+  .toast { border: 1px solid var(--blue); background: rgba(12,14,20,.95); border-radius: 7px; padding: 8px 12px; box-shadow: 0 12px 32px rgba(0,0,0,.35); }
+  .toast.error { border-color: var(--red); }
+  .toast.success { border-color: var(--green); }
+  .data-card { border: 1px solid var(--line); border-radius: 7px; padding: 10px; background: var(--panel-2); margin-bottom: 8px; }
+  .data-card .h { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 700; }
+  .data-card .count { color: var(--cyan); font-family: GeistMono, monospace; }
+  .cue { display: flex; justify-content: space-between; color: var(--muted); border-top: 1px solid rgba(255,255,255,.07); padding-top: 5px; margin-top: 5px; font-family: GeistMono, monospace; font-size: 11px; }
+  .status { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+  .dot.connected { background: var(--green); box-shadow: 0 0 12px rgba(107,209,120,.7); }
+  .dot.connecting { background: var(--amber); }
+  .meter { display: grid; grid-template-columns: 1fr auto; gap: 8px; color: var(--muted); margin-top: 6px; }
+  .timeline {
+    background: #0d0f14; border-top: 1px solid var(--line); padding: 10px 14px;
+    display: grid; grid-template-rows: 30px 1fr; gap: 8px;
+  }
+  .tl-top { display: flex; align-items: center; justify-content: space-between; }
+  .tl-left, .tl-right { display: flex; align-items: center; gap: 8px; }
+  .tracks { display: grid; gap: 6px; }
+  .track { display: grid; grid-template-columns: 72px 1fr; gap: 10px; align-items: center; }
+  .track-label { color: var(--muted); font-family: GeistMono, monospace; font-size: 11px; }
+  .track-bar { position: relative; height: 16px; border: 1px solid var(--line); background: #080a0e; border-radius: 4px; cursor: pointer; overflow: hidden; }
+  .track-fill { height: 100%; width: 0; opacity: .65; }
+  .cam .track-fill { background: var(--blue); }
+  .anim .track-fill { background: var(--pink); }
+  .light .track-fill { background: var(--amber); }
+  .playhead { position: absolute; top: -2px; bottom: -2px; width: 2px; background: white; box-shadow: 0 0 9px white; }
+  @media (max-width: 1040px) {
+    .workspace { grid-template-columns: 292px 1fr; }
+    .inspector { display: none; }
+  }
+  @media (max-width: 760px) {
+    body { overflow: auto; }
+    .app { min-height: 900px; }
+    .workspace { grid-template-columns: 1fr; grid-template-rows: 320px 1fr; }
+    .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
+    .brand-sub { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark"></div>
+      <div>
+        <div class="brand-title" data-i18n="appName">AI Digital Rehearsal</div>
+        <div class="brand-sub">Motion + Camera + Lighting Bridge</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <select class="lang" id="lang-select" title="Language">
+        <option value="zh" selected>&#20013;&#25991;</option>
+        <option value="en">English</option>
+      </select>
+      <button class="btn" id="btn-reset" data-i18n="reset">Reset</button>
+      <button class="btn" id="btn-export" data-i18n="export">Export JSON</button>
+      <button class="btn primary" id="btn-generate-all" data-i18n="generateAll">Generate All</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar">
+      <section class="section">
+        <div class="section-head"><div class="section-title" data-i18n="creativeBrief">Creative Brief</div><span class="pill">PROMPT</span></div>
+        <textarea id="prompt">&#19968;&#20010;&#39640;&#36895;&#333?;&#21488;&#39044;&#28436;&#65306;&#26426;&#22120;&#20154;&#35282;&#33394;&#36827;&#34892;&#26377;&#33410;&#22863;&#30340;&#21160;&#20316;&#65292;&#38236;&#22836;&#29615;&#32469;&#25512;&#36827;&#65292;&#28783;&#20809;&#36319;&#38543;&#33410;&#25293;&#21464;&#21270;&#12290;</textarea>
+        <label data-i18n="stageStyle">Stage style</label>
+        <div class="seg" id="style-grid">
+          <button class="chip active" data-style="studio" data-i18n="styleStudio">Blackbox Studio</button>
+          <button class="chip" data-style="concert" data-i18n="styleConcert">Live Concert</button>
+          <button class="chip" data-style="gallery" data-i18n="styleGallery">Media Gallery</button>
+          <button class="chip" data-style="opera" data-i18n="styleOpera">Modern Opera</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><div class="section-title" data-i18n="generation">Generation</div><span class="pill">LOCAL</span></div>
+        <div class="row">
+          <button class="btn grow" id="btn-gen-anim" data-i18n="genAnim">Motion</button>
+          <button class="btn grow" id="btn-gen-cam" data-i18n="genCam">Camera</button>
+          <button class="btn grow" id="btn-gen-light" data-i18n="genLight">Lighting</button>
+        </div>
+        <div class="slider-row"><span data-i18n="duration">Duration</span><input id="duration" type="range" min="5" max="24" step="1" value="12"><span id="duration-val" class="mono">12s</span></div>
+        <div class="slider-row"><span data-i18n="energy">Energy</span><input id="energy" type="range" min="0.2" max="2" step="0.1" value="1"><span id="energy-val" class="mono">1.0</span></div>
+        <div class="slider-row"><span data-i18n="camera">Camera</span><input id="camera-intensity" type="range" min="0.2" max="2" step="0.1" value="1"><span id="camera-val" class="mono">1.0</span></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><div class="section-title" data-i18n="ueBridge">Unreal Bridge</div><span class="pill">WS</span></div>
+        <div class="status"><span class="dot" id="bridge-dot"></span><span id="bridge-status" data-i18n="disconnected">Disconnected</span></div>
+        <label data-i18n="bridgeUrl">Bridge URL</label>
+        <input id="bridge-url" value="ws://localhost:9090">
+        <div class="row" style="margin-top:8px;">
+          <button class="btn primary grow" id="btn-connect" data-i18n="connect">Connect</button>
+          <button class="btn danger grow" id="btn-disconnect" disabled data-i18n="disconnect">Disconnect</button>
+        </div>
+        <div class="slider-row"><span data-i18n="streamFps">Stream FPS</span><input id="stream-fps" type="range" min="2" max="15" step="1" value="10"><span id="stream-fps-val" class="mono">10</span></div>
+        <div class="meter"><span data-i18n="sentFrames">Sent frames</span><b id="sent-frames" class="mono">0</b></div>
+        <div class="meter"><span data-i18n="buffered">Buffered</span><b id="buffered" class="mono">0 KB</b></div>
+      </section>
+    </aside>
+
+    <section class="stage">
+      <canvas id="stage-canvas"></canvas>
+      <div class="hud">
+        <div class="badge">FPS <b id="fps">0</b></div>
+        <div class="badge"><span data-i18n="view">View</span> <b id="view-mode">Orbit</b></div>
+        <div class="badge"><span data-i18n="style">Style</span> <b id="style-badge">Blackbox</b></div>
+      </div>
+      <div class="tools">
+        <button class="btn icon-btn" id="btn-grid" title="Grid">#</button>
+        <button class="btn icon-btn" id="btn-view" title="Camera view">C</button>
+      </div>
+    </section>
+
+    <aside class="inspector">
+      <section class="section">
+        <div class="section-head"><div class="section-title" data-i18n="keyframes">Keyframes</div><span class="pill">DATA</span></div>
+        <div class="data-card" id="card-anim"></div>
+        <div class="data-card" id="card-cam"></div>
+        <div class="data-card" id="card-light"></div>
+      </section>
+      <section class="section">
+        <div class="section-head"><div class="section-title" data-i18n="githubDemo">GitHub Demo</div><span class="pill">PAGES</span></div>
+        <p style="color:var(--muted);line-height:1.55;margin:0;" data-i18n="githubHint">Push this folder to GitHub and enable Pages from the main branch. The public demo will serve /demo/.</p>
+        <button class="btn" id="btn-copy-demo" style="margin-top:10px;width:100%;" data-i18n="copyDemoPath">Copy demo path</button>
+      </section>
+      <section class="section">
+        <div class="section-head"><div class="section-title" data-i18n="safety">Bridge Safety</div><span class="pill">SAFE</span></div>
+        <p style="color:var(--muted);line-height:1.55;margin:0;" data-i18n="safetyHint">Streaming is capped, skips frames when the socket buffer grows, and disconnects before the browser or editor gets overwhelmed.</p>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="timeline">
+    <div class="tl-top">
+      <div class="tl-left">
+        <button class="btn icon-btn" id="btn-play">Play</button>
+        <span class="mono" id="time-readout">00:00 / 00:12</span>
+      </div>
+      <div class="tl-right">
+        <span data-i18n="speed">Speed</span>
+        <select id="speed" style="width:76px;"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="1.5">1.5x</option><option value="2">2x</option></select>
+      </div>
+    </div>
+    <div class="tracks">
+      <div class="track cam"><span class="track-label">CAMERA</span><div class="track-bar" data-track="cam"><div class="track-fill" id="fill-cam"></div><div class="playhead"></div></div></div>
+      <div class="track anim"><span class="track-label">MOTION</span><div class="track-bar" data-track="anim"><div class="track-fill" id="fill-anim"></div><div class="playhead"></div></div></div>
+      <div class="track light"><span class="track-label">LIGHT</span><div class="track-bar" data-track="light"><div class="track-fill" id="fill-light"></div><div class="playhead"></div></div></div>
+    </div>
+  </footer>
+</div>
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const $ = (id) => document.getElementById(id);
+const copy = {
+  en: {
+    appName:'AI Digital Rehearsal', reset:'Reset', export:'Export JSON', generateAll:'Generate All',
+    creativeBrief:'Creative Brief', stageStyle:'Stage style', styleStudio:'Blackbox Studio', styleConcert:'Live Concert', styleGallery:'Media Gallery', styleOpera:'Modern Opera',
+    generation:'Generation', genAnim:'Motion', genCam:'Camera', genLight:'Lighting', duration:'Duration', energy:'Energy', camera:'Camera',
+    ueBridge:'Unreal Bridge', disconnected:'Disconnected', connected:'Connected', connecting:'Connecting', bridgeUrl:'Bridge URL', connect:'Connect', disconnect:'Disconnect',
+    streamFps:'Stream FPS', sentFrames:'Sent frames', buffered:'Buffered', view:'View', style:'Style', keyframes:'Keyframes', githubDemo:'GitHub Demo',
+    githubHint:'Push this folder to GitHub and enable Pages from the main branch. The public demo will serve /demo/.',
+    copyDemoPath:'Copy demo path', safety:'Bridge Safety', safetyHint:'Streaming is capped, skips frames when the socket buffer grows, and disconnects before the browser or editor gets overwhelmed.',
+    speed:'Speed'
+  },
+  zh: {
+    appName:'AI \\u6570\\u5b57\\u9884\\u6f14\\u5de5\\u4f5c\\u53f0',
+    reset:'\\u91cd\\u7f6e',
+    export:'\\u5bfc\\u51fa JSON',
+    generateAll:'\\u751f\\u6210\\u5168\\u90e8',
+    creativeBrief:'\\u521b\\u610f\\u63cf\\u8ff0',
+    stageStyle:'\\u821e\\u53f0\\u98ce\\u683c',
+    styleStudio:'\\u9ed1\\u76d2\\u6392\\u7ec3\\u5385',
+    styleConcert:'\\u73b0\\u573a\\u6f14\\u5531\\u4f1a',
+    styleGallery:'\\u5a92\\u4f53\\u5c55\\u5385',
+    styleOpera:'\\u73b0\\u4ee3\\u5267\\u573a',
+    generation:'\\u751f\\u6210\\u6a21\\u5757',
+    genAnim:'\\u52a8\\u4f5c',
+    genCam:'\\u8fd0\\u955c',
+    genLight:'\\u706f\\u5149',
+    duration:'\\u65f6\\u957f',
+    energy:'\\u80fd\\u91cf',
+    camera:'\\u955c\\u5934',
+    ueBridge:'Unreal \\u8054\\u52a8',
+    disconnected:'\\u672a\\u8fde\\u63a5',
+    connected:'\\u5df2\\u8fde\\u63a5',
+    connecting:'\\u8fde\\u63a5\\u4e2d',
+    bridgeUrl:'\\u6865\\u63a5\\u5730\\u5740',
+    connect:'\\u8fde\\u63a5',
+    disconnect:'\\u65ad\\u5f00',
+    streamFps:'\\u63a8\\u9001 FPS',
+    sentFrames:'\\u5df2\\u53d1\\u9001\\u5e27',
+    buffered:'\\u7f13\\u51b2',
+    view:'\\u89c6\\u56fe',
+    style:'\\u98ce\\u683c',
+    keyframes:'\\u5173\\u952e\\u5e27',
+    githubDemo:'GitHub \\u6f14\\u793a',
+    githubHint:'\\u628a\\u8fd9\\u4e2a\\u76ee\\u5f55\\u63a8\\u9001\\u5230 GitHub\\uff0c\\u5e76\\u5728\\u4e3b\\u5206\\u652f\\u5f00\\u542f Pages\\u3002\\u5916\\u7f51 Demo \\u4f1a\\u4ece /demo/ \\u8bbf\\u95ee\\u3002',
+    copyDemoPath:'\\u590d\\u5236 Demo \\u8def\\u5f84',
+    safety:'\\u8054\\u52a8\\u4fdd\\u62a4',
+    safetyHint:'\\u63a8\\u6d41\\u5df2\\u9650\\u901f\\uff1b\\u5f53 WebSocket \\u7f13\\u51b2\\u53d8\\u5927\\u65f6\\u4f1a\\u8df3\\u5e27\\uff0c\\u8fc7\\u8f7d\\u524d\\u4f1a\\u4e3b\\u52a8\\u65ad\\u5f00\\uff0c\\u907f\\u514d\\u6d4f\\u89c8\\u5668\\u548c\\u7f16\\u8f91\\u5668\\u5361\\u6b7b\\u3002',
+    speed:'\\u901f\\u5ea6'
+  }
+};
+
+const styles = {
+  studio: { label:'Blackbox', bg:0x050609, floor:0x151820, accent:0x56d7c8, side:0xf06fae, bloom:.42 },
+  concert: { label:'Concert', bg:0x08070b, floor:0x18151c, accent:0x54a8ff, side:0xf3b45b, bloom:.65 },
+  gallery: { label:'Gallery', bg:0x0b0e12, floor:0x20252c, accent:0xffffff, side:0x56d7c8, bloom:.28 },
+  opera: { label:'Opera', bg:0x0d090a, floor:0x21191b, accent:0xf06fae, side:0xffd08a, bloom:.5 }
+};
+
+const state = {
+  lang:'zh', style:'studio', duration:12, time:0, playing:false, speed:1, energy:1, camIntensity:1,
+  camView:false, animKeys:[], camKeys:[], lightKeys:[], sent:0
+};
+
+function t(key) { return copy[state.lang][key] || copy.en[key] || key; }
+function applyLanguage(lang) {
+  state.lang = lang;
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  updateBridgeStatus(Bridge.status);
+  renderCards();
+}
+
+function toast(message, type='') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = message;
+  $('toast-wrap').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .25s'; setTimeout(() => el.remove(), 260); }, 2400);
+}
+
+function lerp(a,b,k){ return a + (b - a) * k; }
+function sample(keys, time, field) {
+  if (!keys.length) return 0;
+  let a = keys[0], b = keys[keys.length - 1];
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (time >= keys[i].time && time <= keys[i+1].time) { a = keys[i]; b = keys[i+1]; break; }
+  }
+  const span = Math.max(0.001, b.time - a.time);
+  return lerp(a[field] ?? 0, b[field] ?? 0, Math.min(1, Math.max(0, (time - a.time) / span)));
+}
+function fmt(s){ return `00:${String(Math.floor(s)).padStart(2,'0')}`; }
+
+const canvas = $('stage-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x050609, .045);
+const camera = new THREE.PerspectiveCamera(45, 1, .1, 100);
+camera.position.set(6, 4, 7);
+const cineCam = new THREE.PerspectiveCamera(45, 1, .1, 100);
+const orbit = new OrbitControls(camera, canvas);
+orbit.enableDamping = true;
+orbit.target.set(0, 1.2, 0);
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(1,1), .45, .35, .82);
+composer.addPass(renderPass); composer.addPass(bloomPass); composer.addPass(new OutputPass());
+
+const ambient = new THREE.AmbientLight(0xffffff, .22); scene.add(ambient);
+const keyLight = new THREE.SpotLight(0x56d7c8, 6, 18, .6, .5); keyLight.position.set(4, 7, 4); scene.add(keyLight);
+const rimLight = new THREE.PointLight(0xf06fae, 4, 18); rimLight.position.set(-4, 4, -4); scene.add(rimLight);
+const fillLight = new THREE.PointLight(0xffffff, 1.2, 12); fillLight.position.set(0, 3, 5); scene.add(fillLight);
+
+const grid = new THREE.GridHelper(12, 24, 0x2f3540, 0x20252d); scene.add(grid);
+const floor = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 3.8, .22, 96), new THREE.MeshStandardMaterial({ color:0x151820, roughness:.55, metalness:.15 }));
+floor.position.y = -.12; scene.add(floor);
+const ring = new THREE.Mesh(new THREE.TorusGeometry(2.4, .025, 8, 96), new THREE.MeshBasicMaterial({ color:0x56d7c8 }));
+ring.rotation.x = Math.PI / 2; ring.position.y = .05; scene.add(ring);
+
+const character = new THREE.Group(); scene.add(character);
+const mats = {
+  body: new THREE.MeshStandardMaterial({ color:0xd9e3ef, roughness:.36, metalness:.25 }),
+  dark: new THREE.MeshStandardMaterial({ color:0x161a22, roughness:.42, metalness:.45 }),
+  glow: new THREE.MeshBasicMaterial({ color:0x56d7c8 })
+};
+function part(mesh, pos, scale) { mesh.position.set(...pos); mesh.scale.set(...scale); character.add(mesh); return mesh; }
+const body = part(new THREE.Mesh(new THREE.CapsuleGeometry(.42, 1.05, 8, 20), mats.body), [0,1.05,0], [1,1,1]);
+const head = part(new THREE.Mesh(new THREE.SphereGeometry(.42, 32, 18), mats.body), [0,2.0,0], [1,.82,1]);
+const eyeL = part(new THREE.Mesh(new THREE.SphereGeometry(.075, 16, 10), mats.glow), [-.15,2.04,.34], [1,1,1]);
+const eyeR = part(new THREE.Mesh(new THREE.SphereGeometry(.075, 16, 10), mats.glow), [.15,2.04,.34], [1,1,1]);
+const armL = part(new THREE.Mesh(new THREE.CapsuleGeometry(.09, .82, 8, 12), mats.dark), [-.55,1.15,0], [1,1,1]);
+const armR = part(new THREE.Mesh(new THREE.CapsuleGeometry(.09, .82, 8, 12), mats.dark), [.55,1.15,0], [1,1,1]);
+const legL = part(new THREE.Mesh(new THREE.CapsuleGeometry(.11, .8, 8, 12), mats.dark), [-.22,.34,0], [1,1,1]);
+const legR = part(new THREE.Mesh(new THREE.CapsuleGeometry(.11, .8, 8, 12), mats.dark), [.22,.34,0], [1,1,1]);
+
+const fallbackRig = { body, head, eyeL, eyeR, armL, armR, legL, legR };
+let loadedRobot = null;
+new GLTFLoader().load('../assets/models/RobotExpressive.glb', (gltf) => {
+  loadedRobot = gltf.scene;
+  loadedRobot.name = 'RobotExpressive';
+  loadedRobot.scale.setScalar(0.42);
+  loadedRobot.position.set(0, 0, 0);
+  loadedRobot.rotation.y = Math.PI;
+  character.add(loadedRobot);
+  Object.values(fallbackRig).forEach(mesh => mesh.visible = false);
+  toast(state.lang === 'zh' ? '\u9ed8\u8ba4\u6d4b\u8bd5\u673a\u5668\u4eba\u6a21\u578b\u5df2\u52a0\u8f7d' : 'Default test robot model loaded', 'success');
+}, undefined, () => {
+  toast(state.lang === 'zh' ? '\u673a\u5668\u4eba\u6a21\u578b\u52a0\u8f7d\u5931\u8d25\uff0c\u5df2\u4f7f\u7528\u5185\u7f6e\u7b80\u6a21' : 'Robot model failed to load; using fallback rig', 'error');
+});
+
+function generateAnim() {
+  const keys = [];
+  const step = .25;
+  for (let time = 0; time <= state.duration + .001; time += step) {
+    const p = time / state.duration, beat = time * Math.PI * 2 * state.energy;
+    keys.push({ time:+time.toFixed(3), bodyY: 1.05 + Math.sin(beat * 2) * .08, head: Math.sin(beat * .7) * .35,
+      armL: Math.sin(beat) * 1.1, armR: Math.sin(beat + Math.PI) * 1.1, legL: Math.sin(beat + Math.PI) * .55, legR: Math.sin(beat) * .55,
+      x: Math.sin(p * Math.PI * 2) * .35, z: Math.cos(p * Math.PI * 2) * .2 });
+  }
+  state.animKeys = keys; renderCards(); updateFills(); toast(state.lang === 'zh' ? '\u52a8\u4f5c\u5173\u952e\u5e27\u5df2\u751f\u6210' : 'Motion keyframes generated', 'success');
+}
+function generateCam() {
+  const keys = [];
+  for (let i = 0; i <= 36; i++) {
+    const time = state.duration * i / 36, a = i / 36 * Math.PI * 2;
+    const radius = (5.6 + Math.sin(a * 2) * .8) * state.camIntensity;
+    keys.push({ time:+time.toFixed(3), x:Math.cos(a)*radius, y:2.7 + Math.sin(a*1.5)*.6, z:Math.sin(a)*radius, fov:42 + Math.sin(a*2)*7 });
+  }
+  state.camKeys = keys; renderCards(); updateFills(); toast(state.lang === 'zh' ? '\u8fd0\u955c\u8f68\u8ff9\u5df2\u751f\u6210' : 'Camera path generated', 'success');
+}
+function generateLight() {
+  const palette = styles[state.style];
+  const keys = [];
+  for (let i = 0; i <= 18; i++) {
+    const time = state.duration * i / 18, a = i / 18 * Math.PI * 2;
+    keys.push({ time:+time.toFixed(3), angle:a, key: 3.2 + Math.sin(a*3)*1.8, fill:.8 + Math.cos(a*2)*.45,
+      c1:`#${palette.accent.toString(16).padStart(6,'0')}`, c2:`#${palette.side.toString(16).padStart(6,'0')}` });
+  }
+  state.lightKeys = keys; renderCards(); updateFills(); toast(state.lang === 'zh' ? '\u706f\u5149 Cue \u5df2\u751f\u6210' : 'Lighting cues generated', 'success');
+}
+function generateAll(){ generateAnim(); generateCam(); generateLight(); state.playing = true; $('Pause').textContent = 'Pause'; }
+
+function applyStyle(name) {
+  state.style = name;
+  const s = styles[name];
+  scene.background = new THREE.Color(s.bg); scene.fog.color = new THREE.Color(s.bg);
+  floor.material.color.setHex(s.floor); ring.material.color.setHex(s.accent);
+  keyLight.color.setHex(s.accent); rimLight.color.setHex(s.side); mats.glow.color.setHex(s.accent);
+  bloomPass.strength = s.bloom; $('style-badge').textContent = s.label;
+}
+function applyAnim(time) {
+  if (!state.animKeys.length) return;
+  character.position.set(sample(state.animKeys,time,'x'), 0, sample(state.animKeys,time,'z'));
+  character.rotation.y = Math.sin(time * state.energy * 1.7) * 0.28;
+  if (loadedRobot) {
+    loadedRobot.position.y = Math.sin(time * state.energy * Math.PI * 2) * 0.04;
+  }
+  body.position.y = sample(state.animKeys,time,'bodyY');
+  head.rotation.y = sample(state.animKeys,time,'head');
+  eyeL.scale.setScalar(1 + Math.abs(Math.sin(time * 5)) * .25); eyeR.scale.copy(eyeL.scale);
+  armL.rotation.z = sample(state.animKeys,time,'armL'); armR.rotation.z = sample(state.animKeys,time,'armR');
+  legL.rotation.x = sample(state.animKeys,time,'legL'); legR.rotation.x = sample(state.animKeys,time,'legR');
+}
+function applyCam(time) {
+  if (!state.camKeys.length) return;
+  cineCam.position.set(sample(state.camKeys,time,'x'), sample(state.camKeys,time,'y'), sample(state.camKeys,time,'z'));
+  cineCam.lookAt(0, 1.2, 0); cineCam.fov = sample(state.camKeys,time,'fov'); cineCam.updateProjectionMatrix();
+}
+function applyLight(time) {
+  if (!state.lightKeys.length) return;
+  const a = sample(state.lightKeys,time,'angle'), key = sample(state.lightKeys,time,'key'), fill = sample(state.lightKeys,time,'fill');
+  keyLight.position.set(Math.cos(a)*4.5, 6.5, Math.sin(a)*4.5); rimLight.position.set(Math.cos(a+Math.PI)*4, 3.5, Math.sin(a+Math.PI)*4);
+  keyLight.intensity = key; rimLight.intensity = key * .65; fillLight.intensity = fill;
+}
+
+function renderCards() {
+  const empty = state.lang === 'zh' ? '\u5c1a\u672a\u751f\u6210' : 'Not generated';
+  const card = (id, title, keys, field) => {
+    const el = $(id);
+    const rows = keys.slice(0, 4).map(k => `<div class="cue"><span>${k.time.toFixed(2)}s</span><span>${Number(k[field] ?? 0).toFixed(2)}</span></div>`).join('');
+    el.innerHTML = `<div class="h"><span>${title}</span><span class="count">${keys.length}</span></div>${keys.length ? rows : `<span style="color:var(--muted)">${empty}</span>`}`;
+  };
+  card('card-anim', state.lang === 'zh' ? '\u52a8\u4f5c' : 'Motion', state.animKeys, 'armL');
+  card('card-cam', state.lang === 'zh' ? '\u8fd0\u955c' : 'Camera', state.camKeys, 'x');
+  card('card-light', state.lang === 'zh' ? '\u706f\u5149' : 'Lighting', state.lightKeys, 'key');
+}
+function updateFills() {
+  $('fill-anim').style.width = state.animKeys.length ? '100%' : '0';
+  $('fill-cam').style.width = state.camKeys.length ? '100%' : '0';
+  $('fill-light').style.width = state.lightKeys.length ? '100%' : '0';
+}
+function updateTimeline() {
+  $('time-readout').textContent = `${fmt(state.time)} / ${fmt(state.duration)}`;
+  const pct = `${(state.time / state.duration) * 100}%`;
+  document.querySelectorAll('.playhead').forEach(p => p.style.left = pct);
+}
+
+const Bridge = {
+  ws:null, status:'disconnected', lastSentAt:0, dropped:0, maxBuffered:256 * 1024,
+  connect(url) {
+    this.disconnect(false); this.status = 'connecting'; updateBridgeStatus(this.status);
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) { toast(state.lang === 'zh' ? '\u8fde\u63a5\u8d85\u65f6' : 'Connection timed out', 'error'); this.disconnect(); }
+    }, 3500);
+    try {
+      this.ws = new WebSocket(url);
+      this.ws.onopen = () => { settled = true; clearTimeout(timer); this.status = 'connected'; updateBridgeStatus(this.status); toast(state.lang === 'zh' ? '\u5df2\u8fde\u63a5 Unreal Bridge' : 'Unreal Bridge connected', 'success'); };
+      this.ws.onclose = () => { settled = true; clearTimeout(timer); this.status = 'disconnected'; updateBridgeStatus(this.status); };
+      this.ws.onerror = () => { settled = true; clearTimeout(timer); toast(state.lang === 'zh' ? 'WebSocket \u9519\u8bef' : 'WebSocket error', 'error'); this.disconnect(); };
+    } catch (err) { clearTimeout(timer); this.disconnect(); toast(err.message, 'error'); }
+  },
+  disconnect(show=true) {
+    if (this.ws) { try { this.ws.close(1000, 'client disconnect'); } catch {} }
+    this.ws = null; this.status = 'disconnected'; updateBridgeStatus(this.status);
+    if (show) toast(state.lang === 'zh' ? '\u8054\u52a8\u5df2\u65ad\u5f00' : 'Bridge disconnected');
+  },
+  tick(now) {
+    if (this.status !== 'connected' || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    const fps = Number($('stream-fps').value) || 10;
+    if (now - this.lastSentAt < 1000 / fps) return;
+    if (this.ws.bufferedAmount > this.maxBuffered) {
+      toast(state.lang === 'zh' ? '\u6865\u63a5\u7f13\u51b2\u8fc7\u9ad8\uff0c\u5df2\u81ea\u52a8\u65ad\u5f00' : 'Bridge buffer is too high. Disconnected to protect the editor.', 'error');
+      this.disconnect(false); return;
+    }
+    if (this.ws.bufferedAmount > 64 * 1024) { this.dropped++; return; }
+    this.lastSentAt = now;
+    const t = state.time;
+    const frame = {
+      type:'frame', time:+t.toFixed(3),
+      camera: state.camKeys.length ? { pos:[+sample(state.camKeys,t,'x').toFixed(3), +sample(state.camKeys,t,'y').toFixed(3), +sample(state.camKeys,t,'z').toFixed(3)], lookAt:[0,1.2,0], fov:+sample(state.camKeys,t,'fov').toFixed(1) } : null,
+      lights: state.lightKeys.length ? [
+        { id:'key', color:sampleColor('c1'), intensity:+sample(state.lightKeys,t,'key').toFixed(3), pos:[+keyLight.position.x.toFixed(3), +keyLight.position.y.toFixed(3), +keyLight.position.z.toFixed(3)] },
+        { id:'rim', color:sampleColor('c2'), intensity:+rimLight.intensity.toFixed(3), pos:[+rimLight.position.x.toFixed(3), +rimLight.position.y.toFixed(3), +rimLight.position.z.toFixed(3)] }
+      ] : [],
+      character: state.animKeys.length ? { pos:[+character.position.x.toFixed(3), 0, +character.position.z.toFixed(3)], boneRot:{ head:[0,+head.rotation.y.toFixed(3),0], armL:[0,0,+armL.rotation.z.toFixed(3)], armR:[0,0,+armR.rotation.z.toFixed(3)], legL:[+legL.rotation.x.toFixed(3),0,0], legR:[+legR.rotation.x.toFixed(3),0,0] } } : null,
+      source:{ app:'stage-rehearsal', fps }
+    };
+    this.ws.send(JSON.stringify(frame)); state.sent++;
+    $('sent-frames').textContent = state.sent; $('buffered').textContent = `${Math.round(this.ws.bufferedAmount / 1024)} KB`;
+  }
+};
+function sampleColor(field) {
+  if (!state.lightKeys.length) return '#ffffff';
+  let item = state.lightKeys[0];
+  for (const k of state.lightKeys) if (k.time <= state.time) item = k;
+  return item[field] || '#ffffff';
+}
+function updateBridgeStatus(status) {
+  Bridge.status = status || 'disconnected';
+  $('bridge-dot').className = `dot ${Bridge.status === 'connected' ? 'connected' : Bridge.status === 'connecting' ? 'connecting' : ''}`;
+  $('bridge-status').textContent = t(Bridge.status);
+  $('btn-connect').disabled = Bridge.status !== 'disconnected';
+  $('btn-disconnect').disabled = Bridge.status !== 'connected';
+}
+
+function resize() {
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.max(1, rect.width), h = Math.max(1, rect.height);
+  if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) {
+    renderer.setSize(w, h, false); composer.setSize(w, h);
+    camera.aspect = w / h; camera.updateProjectionMatrix(); cineCam.aspect = w / h; cineCam.updateProjectionMatrix();
+  }
+}
+let last = performance.now(), fpsCount = 0, fpsStamp = last;
+function animate(now) {
+  requestAnimationFrame(animate); resize();
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  fpsCount++; if (now - fpsStamp > 600) { $('fps').textContent = Math.round(fpsCount * 1000 / (now - fpsStamp)); fpsCount = 0; fpsStamp = now; }
+  if (state.playing) { state.time = (state.time + dt * state.speed) % state.duration; updateTimeline(); }
+  applyAnim(state.time); applyCam(state.time); applyLight(state.time);
+  ring.rotation.z += dt * .18; orbit.update();
+  renderPass.camera = state.camView && state.camKeys.length ? cineCam : camera;
+  composer.render(); Bridge.tick(now);
+}
+
+document.querySelectorAll('.chip').forEach(chip => chip.addEventListener('click', () => {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active'); applyStyle(chip.dataset.style); if (state.lightKeys.length) generateLight();
+}));
+$('lang-select').addEventListener('change', e => applyLanguage(e.target.value));
+$('btn-gen-anim').addEventListener('click', generateAnim);
+$('btn-gen-cam').addEventListener('click', generateCam);
+$('btn-gen-light').addEventListener('click', generateLight);
+$('btn-generate-all').addEventListener('click', generateAll);
+$('btn-play').addEventListener('click', () => { state.playing = !state.playing; $('btn-play').textContent = state.playing ? 'Pause' : 'Play'; });
+$('btn-reset').addEventListener('click', () => { state.time = 0; state.playing = false; state.animKeys = []; state.camKeys = []; state.lightKeys = []; $('Pause').textContent = 'Pause'; renderCards(); updateFills(); updateTimeline(); });
+$('btn-export').addEventListener('click', () => {
+  const data = { meta:{ product:'AI Digital Rehearsal', exportedAt:new Date().toISOString(), duration:state.duration, style:state.style, prompt:$('prompt').value }, animation:state.animKeys, camera:state.camKeys, lighting:state.lightKeys };
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)], { type:'application/json' })); a.download = `stage-rehearsal-${Date.now()}.json`; a.click(); URL.revokeObjectURL(a.href);
+});
+$('btn-connect').addEventListener('click', () => Bridge.connect($('bridge-url').value.trim()));
+$('btn-disconnect').addEventListener('click', () => Bridge.disconnect());
+$('duration').addEventListener('input', e => { state.duration = Number(e.target.value); $('duration-val').textContent = `${state.duration}s`; state.time = Math.min(state.time, state.duration); updateTimeline(); });
+$('energy').addEventListener('input', e => { state.energy = Number(e.target.value); $('energy-val').textContent = state.energy.toFixed(1); });
+$('camera-intensity').addEventListener('input', e => { state.camIntensity = Number(e.target.value); $('camera-val').textContent = state.camIntensity.toFixed(1); });
+$('stream-fps').addEventListener('input', e => { $('stream-fps-val').textContent = e.target.value; });
+$('speed').addEventListener('change', e => { state.speed = Number(e.target.value); });
+$('btn-grid').addEventListener('click', () => { grid.visible = !grid.visible; });
+$('btn-view').addEventListener('click', () => { state.camView = !state.camView; $('view-mode').textContent = state.camView ? 'Camera' : 'Orbit'; });
+$('btn-copy-demo').addEventListener('click', async () => { await navigator.clipboard?.writeText('/demo/'); toast(state.lang === 'zh' ? '\u5df2\u590d\u5236 /demo/' : 'Copied /demo/', 'success'); });
+document.querySelectorAll('.track-bar').forEach(bar => bar.addEventListener('click', e => {
+  const r = bar.getBoundingClientRect(); state.time = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * state.duration; updateTimeline();
+}));
+
+applyStyle('studio'); applyLanguage('zh'); renderCards(); updateFills(); updateTimeline(); generateAll();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Local/runtime caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+Thumbs.db
+
+# Local test and diagnostic scripts
+_*.py
+test_subsystem*.py
+ws_relay_server.py
+
+# Non-public integration code for this static demo repository
+bridge/
+unreal-plugin/
+
+# Legacy/private product deck and generated media not required for Pages demo
+ai-digital-rehearsal.html
+demo/stageai-console.html
+assets/*.jpg
+_shared/js/
+docs/ai-generation-core.md
+docs/third-party-integration.md
+docs/plan/
+
+# Keep the public demo model
+!assets/models/
+!assets/models/RobotExpressive.glb
